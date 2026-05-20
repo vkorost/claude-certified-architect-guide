@@ -4,6 +4,8 @@ A practitioner reference for the Anthropic CCA-F certification exam: patterns, p
 
 The editorial position is this: the CCA-F exam tests whether you understand why things work the way they do, not just what the correct configuration looks like. The book treats each exam domain as an engineering design space with trade-offs rather than a feature checklist with correct answers.
 
+**Video overview**: [https://youtu.be/Uu4Y1mq7ZY0](https://youtu.be/Uu4Y1mq7ZY0)
+
 ## Why this exists
 
 I wanted a structured understanding of Claude Code's architecture and the design decisions underneath it, specifically as preparation for the CCA-F certification exam. The official documentation is comprehensive but distributed across multiple sites and organized by feature rather than by the conceptual relationships between features. The fastest way to build a unified mental model was to assemble the primary sources into a research corpus and have Claude synthesize it under explicit editorial constraints. After reading what came out, I figured other practitioners preparing for the exam might find it useful, and put it here.
