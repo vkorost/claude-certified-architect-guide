@@ -4,7 +4,7 @@ A practitioner reference for the Anthropic CCA-F certification exam: patterns, p
 
 The editorial position is this: the CCA-F exam tests whether you understand why things work the way they do, not just what the correct configuration looks like. The book treats each exam domain as an engineering design space with trade-offs rather than a feature checklist with correct answers.
 
-**Video overview**: [https://youtu.be/Uu4Y1mq7ZY0](https://youtu.be/Uu4Y1mq7ZY0)
+[**Video overview of the project**](https://youtu.be/Uu4Y1mq7ZY0)
 
 ## Why this exists
 
