@@ -362,14 +362,14 @@ D. Increase `max_tokens` to give the model more room to find the field
 
 **Question 3**
 
-A request using `strict: true` on all 6 tools fails with a 400 error: "Schema is too complex for compilation." Each tool has 4 required parameters and 4 optional parameters. None of the parameters use union types. Which limit has been exceeded?
+A request using `strict: true` on all 6 tools fails with a 400 error: "Schema is too complex for compilation." Each tool has 4 required parameters and 5 optional parameters. None of the parameters use union types. Which limit has been exceeded?
 
 A. The 20 strict-tools-per-request limit
 B. The 24-optional-parameters total limit
 C. The 16 union-type parameters limit
 D. None of the explicit limits; the grammar size limit was exceeded
 
-*Correct answer: B. Six tools with 4 optional parameters each equals 24 optional parameters total, exactly at the documented limit. Any additional optional parameter pushes it past the threshold. The 20-tool limit is not exceeded (only 6 tools). The 16 union-type limit does not apply (no union types). This question tests whether candidates can calculate combined totals across all strict schemas, not just recall individual limit numbers.*<sup>[1]</sup>
+*Correct answer: B. Six tools with 5 optional parameters each equals 30 optional parameters total, exceeding the documented limit of 24. The 20-tool limit is not exceeded (only 6 tools). The 16 union-type limit does not apply (no union types). This question tests whether candidates can calculate combined totals across all strict schemas, not just recall individual limit numbers.*<sup>[1]</sup>
 
 ---
 

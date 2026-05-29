@@ -1,3 +1,15 @@
+---
+
+**Disclaimer**
+
+This book is an independent, unofficial study guide. It is not affiliated with, endorsed by, or sponsored by Anthropic.
+
+Exam structure, scoring, administration details, and product and model specifications described in this book are current as of May 15, 2026 and are subject to change.
+
+Readers should verify all exam-administration and product specifics against official Anthropic documentation before relying on them.
+
+---
+
 # Preface
 
 This book exists because the CCA-F exam is not a documentation quiz.

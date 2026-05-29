@@ -256,7 +256,7 @@ messages = [{"role": "user", "content": "Find customer John Smith"}]
 # The Agentic Loop
 while True:
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
         max_tokens=4096,
         tools=tools,
         messages=messages

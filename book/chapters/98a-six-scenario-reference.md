@@ -8,7 +8,7 @@ The six exam scenarios are not isolated vignettes. They are recurring architectu
 
 **What it tests:** Multi-tool orchestration, escalation logic, and the decision boundary between autonomous action and human handoff. This scenario focuses on when an agent should stop and route rather than continue acting. Tool selection under ambiguous user intent. Managing session state across a support conversation.
 
-**Chapters:** 1, 2, 12
+**Chapters:** 1, 11, 12
 
 ## Scenario 2: Code Review Pipeline
 
