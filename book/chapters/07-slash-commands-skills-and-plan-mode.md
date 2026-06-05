@@ -1,6 +1,6 @@
 # Chapter 7: Slash Commands, Skills, and Plan Mode
 
-> **Executive Summary:** Claude Code exposes three distinct mechanisms for expressing intent: slash commands (quick, repeated actions run in the main conversation context), skills (reusable capability packages that can fork into isolated sub-agent contexts), and plan mode (a read-only exploration phase that produces a plan before a single file is touched). Each mechanism maps to a different point on the spectrum from "I know exactly what to do, just do it" to "I have no idea what this will break, let me think first." The exam tests when to reach for each, how the SKILL.md frontmatter fields (`context: fork`, `allowed-tools`, `argument-hint`) shape skill behavior, and how to combine plan mode with direct execution for complex multi-phase tasks. This chapter also covers the three iterative refinement techniques that appear in Scenario 2: TDD iteration, the interview pattern, and concrete input/output examples.
+**Summary*:** Claude Code exposes three distinct mechanisms for expressing intent: **slash commands** (quick, repeated actions run in the main conversation context), **skills** (reusable capability packages that can fork into isolated sub-agent contexts), and **plan mode** (a read-only exploration phase that produces a plan before a single file is touched). Each mechanism maps to a different point on the spectrum from “I know exactly what to do, just do it” to “I have no idea what this will break, let me think first.” The exam tests when to reach for each, how the SKILL.md frontmatter fields (context: fork, allowed-tools, argument-hint) shape skill behavior, and how to combine plan mode with direct execution for complex multi-phase tasks. This chapter also covers the three iterative refinement techniques that appear in Scenario 2: TDD iteration, the interview pattern, and concrete input/output examples.*
 
 ---
 
@@ -10,11 +10,11 @@ Every request you send to Claude Code sits somewhere on a spectrum. At one end: 
 
 These three regions of the spectrum correspond to three mechanisms.
 
-Commands live at the quick-and-repeatable end. A slash command is a markdown file that becomes a shortcut. Type `/review` and the content of `.claude/commands/review.md` is injected into the prompt. The session does not fork, the context is not isolated, and the tool set is not restricted. Commands are the right tool when the action is simple, fast, and trusted to run in the main conversation without producing exploratory noise that you will have to scroll past for the rest of the session.
+Commands live at the quick-and-repeatable end. A slash command is a markdown file that becomes a shortcut. Type /review and the content of .claude/commands/review.md is injected into the prompt. The session does not fork, the context is not isolated, and the tool set is not restricted. **Commands are the right tool when the action is simple, fast, and trusted to run in the main conversation** without producing exploratory noise that you will have to scroll past for the rest of the session.
 
 Skills live in the middle. A skill is also a markdown file, but packaged differently, and the packaging matters. With the right frontmatter, a skill runs in an isolated sub-agent context. The exploration it does, the intermediate reads and greps and wrong turns, stays inside the fork. The main session receives a summary. This is the mechanism for complex, verbose workflows where the procedure is known but the execution is messy.
 
-Plan mode lives at the deliberate end. It is not a file on disk. It is a `permissionMode` value: `"plan"`. With plan mode active, Claude explores the codebase, reads files, traces call graphs, and produces a written plan, but does not edit a single file. No changes until the plan is approved. The appropriate mechanism for tasks where committing to an approach before understanding the full implications is how you create technical debt or break things at 11 PM.
+Plan mode lives at the deliberate end. It is not a file on disk. It is a permissionMode value: "plan". With plan mode active, Claude explores the codebase, reads files, traces call graphs, and produces a written plan, but does not edit a single file. No changes until the plan is approved. The appropriate mechanism for tasks where committing to an approach before understanding the full implications is how you create technical debt or break things at 11 PM.
 
 The named concept for this chapter is **explicit-intent execution modes**. Each mode requires the developer to be explicit about what kind of engagement they want: fast action, reusable workflow, or deliberate planning.
 
@@ -22,61 +22,61 @@ The named concept for this chapter is **explicit-intent execution modes**. Each 
 
 ## Custom Slash Commands
 
-A custom slash command is a markdown file stored in a specific directory. The filename, minus the `.md` extension, becomes the command name. Drop `review.md` into `.claude/commands/` and `/review` becomes available in that project.<sup>[1]</sup>
+A custom slash command is a markdown file stored in a specific directory. The filename, minus the .md extension, becomes the command name. Drop review.md into .claude/commands/ and /review becomes available in that project.<sup>[1]</sup>
 
 There are two scopes.<sup>[1]</sup>
 
-**Project-scoped commands** live in `.claude/commands/`. They are committed to version control and available to everyone on the team. Use this scope for commands that encode team standards: a code review format, a commit message template, a migration checklist.
+**Project-scoped commands** live in .claude/commands/. They are committed to version control and available to everyone on the team. Use this scope for commands that encode team standards: a code review format, a commit message template, a migration checklist.
 
-**User-scoped commands** live in `~/.claude/commands/`. These are personal, cross-project shortcuts. They do not show up in the repo, so a teammate does not see them unless they set up their own.
+**User-scoped commands** live in ~/.claude/commands/. These are personal, cross-project shortcuts. They do not show up in the repo, so a teammate does not see them unless they set up their own.
 
-The content of the file defines what the command does. Commands support dynamic arguments via placeholders, can execute bash commands and embed the output, and can include file contents using the `@` prefix. The SDK dispatches a slash command the same way it sends any prompt string: the command is included in the prompt text, and the `system/init` message lists the commands available in the current session.<sup>[2]</sup>
+The content of the file defines what the command does. Commands support dynamic arguments via placeholders, can execute bash commands and embed the output, and can include file contents using the @ prefix. The SDK dispatches a slash command the same way it sends any prompt string: the command is included in the prompt text, and the system/init message lists the commands available in the current session.<sup>[2]</sup>
 
 What commands do not do: they do not fork the context. The command executes in the main conversation. If the command triggers exploration that produces several hundred lines of output, that output stays in the main session. For commands handling bounded, trusted tasks, this is fine. For complex exploration, it is a problem that skills exist to solve.
 
-The current recommended format for new work is `.claude/skills/<name>/SKILL.md`, which supports the same slash-command invocation plus autonomous invocation by the model.<sup>[2]</sup> The `.claude/commands/` directory remains valid and supported; the two formats coexist in the CLI.
+The current recommended format for new work is .claude/skills/<name>/SKILL.md, which supports the same slash-command invocation plus autonomous invocation by the model.<sup>[2]</sup> The .claude/commands/ directory remains valid and supported; the two formats coexist in the CLI.
 
 ---
 
 ## Skills: The Reusable Capability Layer
 
-A skill is a directory inside `.claude/skills/` (project) or `~/.claude/skills/` (user) that contains a `SKILL.md` file.<sup>[3]</sup> The file has YAML frontmatter and markdown content. The frontmatter is where the interesting decisions happen.
+A skill is a directory inside .claude/skills/ (project) or ~/.claude/skills/ (user) that contains a SKILL.md file.<sup>[3]</sup> The file has YAML frontmatter and markdown content. The frontmatter is where the interesting decisions happen.
 
 ### Discovery and invocation
 
-When Claude Code starts, it reads skill metadata from the filesystem. The model sees each skill's description and decides autonomously when to invoke it based on that description. A well-written description is a routing key: specific, keyword-rich, honest about what the skill does and under what conditions. A vague description produces unpredictable invocation.<sup>[3]</sup>
+When Claude Code starts, it reads skill metadata from the filesystem. The model sees each skill’s description and decides autonomously when to invoke it based on that description. A well-written description is a routing key: specific, keyword-rich, honest about what the skill does and under what conditions. A vague description produces unpredictable invocation.<sup>[3]</sup>
 
 Skills can also be invoked explicitly by name in a prompt. Both paths work. Autonomous invocation is powerful for skills that should activate naturally during normal work. Explicit invocation is appropriate when you know exactly which capability you need.
 
-In the SDK, the `skills` option on `query()` controls which skills are available. Pass `"all"` to enable every discovered skill, a list of names to enable only those, or `[]` to disable all.<sup>[3]</sup>
+In the SDK, the skills option on query() controls which skills are available. Pass "all" to enable every discovered skill, a list of names to enable only those, or [] to disable all.<sup>[3]</sup>
 
 ### The three frontmatter fields
 
 Three frontmatter fields determine skill behavior in CLI usage. Understanding all three is exam-critical.
 
-**`context: fork`**
+**context: fork**
 
-This is the most important field. When a skill has `context: fork` in its frontmatter, the skill runs in an isolated sub-agent context. The main conversation does not see the intermediate steps: the greps, the reads, the exploratory dead ends.<sup>[4]</sup> The main session receives the summary output from the skill, not the full transcript of everything the skill did to produce it.
+This is the most important field. When a skill has context: fork in its frontmatter, the skill runs in an isolated sub-agent context. The main conversation does not see the intermediate steps: the greps, the reads, the exploratory dead ends.<sup>[4]</sup> The main session receives the summary output from the skill, not the full transcript of everything the skill did to produce it.
 
-The alternative is a skill without `context: fork`, which runs in the main context just like a command. For a skill that reads one file and produces a compact answer, this is fine. For a skill that explores a large codebase, brainstorms multiple approaches, and discards three of them before settling on one, running in the main context pollutes the session with noise the developer has to mentally filter for the rest of the conversation.
+The alternative is a skill without context: fork, which runs in the main context just like a command. For a skill that reads one file and produces a compact answer, this is fine. For a skill that explores a large codebase, brainstorms multiple approaches, and discards three of them before settling on one, running in the main context pollutes the session with noise the developer has to mentally filter for the rest of the conversation.
 
-Consider a refactoring skill that needs to understand the full dependency graph before making any changes. Without `context: fork`, every grep result, every file read, every intermediate analysis lives in the main context. The developer ends up in a session where finding the actual changes requires scrolling through hundreds of lines of exploration. With `context: fork`, the skill does all of that inside the fork, and the main session sees only the final refactored output and a brief summary of what changed.<sup>[4]</sup>
+Consider a refactoring skill that needs to understand the full dependency graph before making any changes. Without context: fork, every grep result, every file read, every intermediate analysis lives in the main context. The developer ends up in a session where finding the actual changes requires scrolling through hundreds of lines of exploration. With context: fork, the skill does all of that inside the fork, and the main session sees only the final refactored output and a brief summary of what changed.<sup>[4]</sup>
 
-**`allowed-tools`**
+**allowed-tools**
 
-The `allowed-tools` frontmatter field restricts which tools the skill can use during execution.<sup>[4]</sup> A refactoring skill that only needs to read and edit files should list only `Read`, `Edit`, and `Grep`. Leaving tool access unrestricted when running a skill in a forked context means the skill could, in principle, execute arbitrary bash commands or write to unexpected locations. Restricting the tool set is defense-in-depth: the scope of what the skill can do is made explicit in the file that defines it.
+The allowed-tools frontmatter field restricts which tools the skill can use during execution.<sup>[4]</sup> A refactoring skill that only needs to read and edit files should list only Read, Edit, and Grep. Leaving tool access unrestricted when running a skill in a forked context means the skill could, in principle, execute arbitrary bash commands or write to unexpected locations. Restricting the tool set is defense-in-depth: the scope of what the skill can do is made explicit in the file that defines it.
 
-One critical constraint: `allowed-tools` in SKILL.md frontmatter applies to CLI usage only. It does not apply when skills are used through the SDK.<sup>[3]</sup> In SDK usage, tool access is controlled through the main `allowedTools` option in the query configuration. This is an exam-tested distinction.
+One critical constraint: allowed-tools in SKILL.md frontmatter applies to CLI usage only. It does not apply when skills are used through the SDK.<sup>[3]</sup> In SDK usage, tool access is controlled through the main allowedTools option in the query configuration. This is an exam-tested distinction.
 
-**`argument-hint`**
+**argument-hint**
 
-When a skill requires a parameter to operate correctly, `argument-hint` tells Claude Code what to prompt for if the skill is invoked without arguments.<sup>[4]</sup> A refactoring skill needs to know which file or directory to refactor. An argument-hint like `"file or directory to refactor"` surfaces this requirement at invocation time instead of letting the skill proceed with missing input and produce an error partway through.
+When a skill requires a parameter to operate correctly, argument-hint tells Claude Code what to prompt for if the skill is invoked without arguments.<sup>[4]</sup> A refactoring skill needs to know which file or directory to refactor. An argument-hint like "file or directory to refactor" surfaces this requirement at invocation time instead of letting the skill proceed with missing input and produce an error partway through.
 
 ### A concrete SKILL.md structure
 
 Here is the frontmatter shape for a refactoring skill, drawn directly from the Domain 3 documentation:<sup>[4]</sup>
 
-```yaml
+```
 ---
 context: fork
 allowed-tools:
@@ -87,25 +87,17 @@ argument-hint: "file or directory to refactor"
 ---
 ```
 
-The body of the file follows as markdown: the skill's instructions, rules, and any patterns the model should follow. This content becomes the system prompt for the forked sub-agent.
+The body of the file follows as markdown: the skill’s instructions, rules, and any patterns the model should follow. This content becomes the system prompt for the forked sub-agent.
 
 ---
 
 ## Skills vs Commands: The Decision
 
-The distinction the exam tests is sharper than "use skills for complex things." The decision criterion is whether execution produces output or exploratory context that would degrade the main session.<sup>[4]</sup>
+The distinction the exam tests is sharper than “use skills for complex things.” The decision criterion is whether execution produces output or exploratory context that would degrade the main session.<sup>[4]</sup>
 
-Use a **command** when:
-- The action is quick and bounded.
-- The output is compact and directly useful in the main conversation.
-- No exploration phase is required.
-- The task is simple enough that running it in the main session does not add noise.
+Use a **command** when: - The action is quick and bounded. - The output is compact and directly useful in the main conversation. - No exploration phase is required. - The task is simple enough that running it in the main session does not add noise.
 
-Use a **skill with `context: fork`** when:
-- The task involves exploration before action: reading many files, tracing dependencies, brainstorming and discarding approaches.
-- The execution produces verbose output that would pollute the main conversation context.
-- Tool access should be restricted to only what the task requires.
-- The same capability will be reused across sessions or by multiple team members with different arguments.
+Use a **skill with context: fork** when: - The task involves exploration before action: reading many files, tracing dependencies, brainstorming and discarding approaches. - The execution produces verbose output that would pollute the main conversation context. - Tool access should be restricted to only what the task requires. - The same capability will be reused across sessions or by multiple team members with different arguments.
 
 The anti-pattern in Scenario 2 is using a command for complex codebase exploration. The command runs in the main context, fills it with intermediate analysis, and leaves the developer debugging their conversation to find the actual output.<sup>[5]</sup>
 
@@ -125,7 +117,7 @@ The practical rule: if an instruction should govern every Claude Code interactio
 
 ## Plan Mode
 
-Plan mode is the deliberate end of the intent spectrum. It corresponds to `permissionMode: "plan"` in the SDK. (The semantics of all `permissionMode` values are established in Chapter 1; this chapter addresses when and why to use `"plan"` specifically.)
+Plan mode is the deliberate end of the intent spectrum. It corresponds to permissionMode: "plan" in the SDK. (The semantics of all permissionMode values are established in Chapter 1; this chapter addresses when and why to use "plan" specifically.)
 
 In plan mode, Claude explores the codebase using read-only tools. It reads files, searches with Grep, traces imports, builds a mental model of the system. Then it produces a plan describing what changes it would make and why. It does not write a single file. No edits, no deletions, no shell commands that modify state.<sup>[6]</sup>
 
@@ -135,7 +127,7 @@ The developer reads the plan, asks questions, requests adjustments, and approves
 
 The exam provides concrete criteria for plan mode selection. Use plan mode for tasks with:<sup>[6]</sup>
 
-- **Architectural implications**: restructuring a microservice's internal boundaries, redesigning how modules communicate, changing a fundamental data flow.
+- **Architectural implications**: restructuring a microservice’s internal boundaries, redesigning how modules communicate, changing a fundamental data flow.
 - **Multi-file modifications**: changes that touch many files across the codebase, where missing a callsite or an interface definition causes runtime failures.
 - **Multiple valid approaches with different infrastructure requirements**: choosing between two integration strategies, each requiring different dependencies and deployment configurations.
 
@@ -149,7 +141,7 @@ The anti-patterns are symmetric. Always using plan mode is wasteful overhead on 
 
 ### The Explore subagent
 
-For multi-phase tasks that involve a verbose discovery phase followed by implementation, the Explore subagent prevents context window exhaustion.<sup>[6]</sup> The pattern: delegate the discovery phase to an Explore subagent. The subagent reads files, traces dependencies, and builds a complete picture of the current state. The main agent receives a summary of what was found, not the full exploration transcript. The main agent's context stays lean for the implementation phase.
+For multi-phase tasks that involve a verbose discovery phase followed by implementation, the Explore subagent prevents context window exhaustion.<sup>[6]</sup> The pattern: delegate the discovery phase to an Explore subagent. The subagent reads files, traces dependencies, and builds a complete picture of the current state. The main agent receives a summary of what was found, not the full exploration transcript. The main agent’s context stays lean for the implementation phase.
 
 This is the subagent-for-context-management pattern applied specifically to codebase exploration. The main agent never needs to see every intermediate grep result; it needs the conclusions. The Explore subagent produces the conclusions; the exploration transcript stays inside the subagent context and is never returned to the parent.<sup>[6]</sup>
 
@@ -175,9 +167,9 @@ The cycle:
 4. Run the tests again. They should pass.
 5. Refine the implementation (performance, error handling, additional edge cases) while keeping all tests green.
 
-The power of this pattern is verification. "Implement this feature" produces an implementation; the developer then needs to evaluate whether the implementation is correct. "Make these tests pass" provides a concrete, runnable definition of correct. Each iteration has a binary outcome: passing or failing. There is no ambiguity about whether progress was made.
+The power of this pattern is verification. “Implement this feature” produces an implementation; the developer then needs to evaluate whether the implementation is correct. “Make these tests pass” provides a concrete, runnable definition of correct. Each iteration has a binary outcome: passing or failing. There is no ambiguity about whether progress was made.
 
-This dramatically outperforms vague instructions like "make it better" because the goal is measurable at each step.<sup>[5]</sup>
+This dramatically outperforms vague instructions like “make it better” because the goal is measurable at each step.<sup>[5]</sup>
 
 ### The interview pattern
 
@@ -191,7 +183,7 @@ This is most valuable in unfamiliar domains. In well-understood domains where th
 
 ### Concrete input/output examples
 
-When a prose description of expected behavior produces inconsistent results, the most effective technique is to provide concrete examples.<sup>[7]</sup> Not "transform the input into a normalized format," but three pairs of input and expected output, covering the typical case, an edge case, and a failure case.
+When a prose description of expected behavior produces inconsistent results, the most effective technique is to provide concrete examples.<sup>[7]</sup> Not “transform the input into a normalized format,” but three pairs of input and expected output, covering the typical case, an edge case, and a failure case.
 
 The exam guide specifies two to three examples as the effective range.<sup>[7]</sup> Too few examples leave ambiguous cases unresolved. Too many examples shift the problem from specification to enumeration.
 
@@ -217,55 +209,47 @@ Commands, skills, and plan mode compose because they occupy different layers: co
 
 ## Sample Questions
 
-**Q1.** A developer defines a codebase analysis procedure in `.claude/commands/analyze.md`. Running `/analyze` fills the main session with hundreds of lines of intermediate grep results and file reads. The actual analysis summary is hard to find. What is the most appropriate fix?
+**Q1.** **A developer defines a codebase analysis procedure in .claude/commands/analyze.md. Running /analyze fills the main session with hundreds of lines of intermediate grep results and file reads. The actual analysis summary is hard to find. What is the most appropriate fix?**
 
-A. Move the analysis instructions to CLAUDE.md so they load with lower priority.
-B. Migrate the command to a skill in `.claude/skills/analyze/SKILL.md` and add `context: fork` to the frontmatter.
-C. Add `--compact` to the command file to limit output length.
+A. Move the analysis instructions to CLAUDE.md so they load with lower priority. 
+B. Migrate the command to a skill in .claude/skills/analyze/SKILL.md and add context: fork to the frontmatter. 
+C. Add --compact to the command file to limit output length. 
 D. Break the command into multiple smaller commands that each run separately.
 
-**Correct answer: B.** The `context: fork` field runs the skill in an isolated sub-agent context. Intermediate exploration stays in the fork; the main session receives only the summary.<sup>[4,5]</sup>
-
----
+**Correct answer: B.** The context: fork field runs the skill in an isolated sub-agent context. Intermediate exploration stays in the fork; the main session receives only the summary.<sup>[4,5]</sup>
 
 **Q2.** A team needs to migrate a library used in 45+ files across the codebase. Multiple migration strategies are possible, each requiring different dependency changes. What is the appropriate first step?
 
-A. Direct execution, asking Claude to migrate files one at a time.
-B. Plan mode (`permissionMode: "plan"`), allowing Claude to explore all callsites and produce a migration plan before any files are modified.
-C. A slash command that iterates through files in alphabetical order.
+A. Direct execution, asking Claude to migrate files one at a time. 
+B. Plan mode (permissionMode: "plan"), allowing Claude to explore all callsites and produce a migration plan before any files are modified. 
+C. A slash command that iterates through files in alphabetical order. 
 D. The TDD iteration pattern, writing migration tests first.
 
 **Correct answer: B.** The task has multi-file scope and multiple valid approaches with different infrastructure implications. These are the exact criteria for plan mode. Direct execution commits to an approach before the full scope is understood.<sup>[6]</sup>
 
----
-
 **Q3.** A developer invokes a refactoring skill but does not provide the target file. The skill produces an error partway through execution. Which frontmatter field would have prevented this?
 
-A. `context: fork`
-B. `allowed-tools`
-C. `argument-hint`
-D. `description`
+A. context: fork 
+B. allowed-tools 
+C. argument-hint 
+D. description
 
-**Correct answer: C.** `argument-hint` prompts the developer for required parameters when the skill is invoked without arguments.<sup>[4]</sup>
+**Correct answer: C.** argument-hint prompts the developer for required parameters when the skill is invoked without arguments.<sup>[4]</sup>
 
----
+**Q4.** A team’s CLAUDE.md contains a 40-step security audit procedure that applies only when auditing authentication modules. The rest of the time, the procedure is irrelevant but adds to the context budget every session. What is the correct fix?
 
-**Q4.** A team's CLAUDE.md contains a 40-step security audit procedure that applies only when auditing authentication modules. The rest of the time, the procedure is irrelevant but adds to the context budget every session. What is the correct fix?
-
-A. Move the procedure to `.claude/rules/` with a `paths` glob pattern matching authentication modules.
-B. Create a skill in `.claude/skills/security-audit/SKILL.md` containing the procedure.
-C. Split the CLAUDE.md into two files and import the relevant one manually.
+A. Move the procedure to .claude/rules/ with a paths glob pattern matching authentication modules. 
+B. Create a skill in .claude/skills/security-audit/SKILL.md containing the procedure. 
+C. Split the CLAUDE.md into two files and import the relevant one manually. 
 D. Reduce the procedure to a summary to stay under the 200-line CLAUDE.md limit.
 
 **Correct answer: B.** Skills load on demand. CLAUDE.md loads every session. Task-specific procedures belong in skills, not CLAUDE.md.<sup>[4]</sup>
 
----
-
 **Q5.** A developer finds that Claude produces inconsistent output for a data normalization function. The natural language description of the normalization rule is technically accurate but produces different interpretations across attempts. Which technique is most effective?
 
-A. The interview pattern: have Claude ask questions about the normalization requirements.
-B. Two to three concrete input/output examples demonstrating the expected transformation, including edge cases.
-C. Plan mode, to allow Claude to design the normalization approach before implementing.
+A. The interview pattern: have Claude ask questions about the normalization requirements. 
+B. Two to three concrete input/output examples demonstrating the expected transformation, including edge cases. 
+C. Plan mode, to allow Claude to design the normalization approach before implementing. 
 D. Increasing specificity of the prose description until all edge cases are covered.
 
 **Correct answer: B.** Concrete input/output examples are the documented most-effective technique when prose descriptions produce inconsistent results. The exam guide specifies two to three examples as the effective range.<sup>[7]</sup>
@@ -274,19 +258,10 @@ D. Increasing specificity of the prose description until all edge cases are cove
 
 ## Key Takeaways
 
-- Custom slash commands are markdown files in `.claude/commands/` (project-scoped) or `~/.claude/commands/` (user-scoped). They run in the main conversation context and are best for quick, bounded, repeatable actions. Skills are directories containing `SKILL.md` files in `.claude/skills/` (project) or `~/.claude/skills/` (user); the model invokes them autonomously based on description, or they can be invoked explicitly by name.
-
-- The three SKILL.md frontmatter fields: `context: fork` isolates skill execution in a sub-agent context; `allowed-tools` restricts tool access during skill execution (CLI only, not SDK); `argument-hint` prompts for required parameters when the skill is invoked without arguments.
-
-- Use skills with `context: fork` for complex exploration or analysis that produces verbose output. Use commands for simple, fast repeated actions. Skills load on demand; CLAUDE.md loads every session. Task-specific procedures belong in skills; universal project standards belong in CLAUDE.md.
-
-- Plan mode (`permissionMode: "plan"`) is for tasks with architectural implications, multi-file scope, or multiple valid approaches. Direct execution is for well-understood changes with clear scope. The Explore subagent handles verbose discovery phases so the main agent receives a summary, not the full exploration transcript.
-
+- Custom slash commands are markdown files in .claude/commands/ (project-scoped) or ~/.claude/commands/ (user-scoped). They run in the main conversation context and are best for quick, bounded, repeatable actions. Skills are directories containing SKILL.md files in .claude/skills/ (project) or ~/.claude/skills/ (user); the model invokes them autonomously based on description, or they can be invoked explicitly by name.
+- The three SKILL.md frontmatter fields: context: fork isolates skill execution in a sub-agent context; allowed-tools restricts tool access during skill execution (CLI only, not SDK); argument-hint prompts for required parameters when the skill is invoked without arguments.
+- Use skills with context: fork for complex exploration or analysis that produces verbose output. Use commands for simple, fast repeated actions. Skills load on demand; CLAUDE.md loads every session. Task-specific procedures belong in skills; universal project standards belong in CLAUDE.md.
+- Plan mode (permissionMode: "plan") is for tasks with architectural implications, multi-file scope, or multiple valid approaches. Direct execution is for well-understood changes with clear scope. The Explore subagent handles verbose discovery phases so the main agent receives a summary, not the full exploration transcript.
 - The TDD iteration pattern: write the test first (defines the goal), run it (confirms it fails), implement to pass, run again, refine while keeping tests green.
-
 - The interview pattern: have Claude ask questions before implementing in unfamiliar domains, to surface design considerations the developer has not anticipated.
-
 - Concrete input/output examples (two to three) are the most effective technique when prose descriptions produce inconsistent results. For multiple issues: combine interacting fixes in one message; sequence independent fixes.
-
----
-

@@ -1,6 +1,8 @@
 # Coverage Map
 
-This map shows how the book's chapters align to the five CCA-F exam domains and their task statements. Use it to identify which chapters to review when drilling a specific domain.
+This map shows how the book’s chapters align to the five CCA-F exam domains and their task statements. Use it to identify which chapters to review when drilling a specific domain.
+
+---
 
 ## Domain 1: Agentic Architecture (27%)
 
@@ -15,6 +17,8 @@ This map shows how the book's chapters align to the five CCA-F exam domains and 
 - Diagnose a runaway or prematurely terminating agentic loop given a scenario description
 - Explain the difference between a system prompt hook and a UserPromptSubmit hook in terms of execution context
 
+---
+
 ## Domain 2: Tool Design (18%)
 
 **Chapters:** 4, 5
@@ -28,6 +32,8 @@ This map shows how the book's chapters align to the five CCA-F exam domains and 
 - Evaluate the scope and trust implications of a given MCP server configuration
 - Apply incremental exploration principles to MCP tool design
 
+---
+
 ## Domain 3: Configuration and Customization (20%)
 
 **Chapters:** 6, 7, 8
@@ -37,10 +43,12 @@ This map shows how the book's chapters align to the five CCA-F exam domains and 
 - Describe the three-layer CLAUDE.md hierarchy and explain inheritance and override semantics
 - Identify which configuration layer should own a given policy or instruction
 - Distinguish between a slash command and a skill in terms of invocation and scope
-- Explain what plan mode changes about Claude's execution behavior and when to enable it
-- Configure a CI/CD pipeline run using the --bare flag and -p flag correctly
+- Explain what plan mode changes about Claude’s execution behavior and when to enable it
+- Configure a CI/CD pipeline run using the –bare flag and -p flag correctly
 - Identify session isolation risks in a multi-job pipeline and select the correct remediation
 - Explain the permissionMode options and their appropriate use cases
+
+---
 
 ## Domain 4: Prompting and Output (20%)
 
@@ -54,6 +62,8 @@ This map shows how the book's chapters align to the five CCA-F exam domains and 
 - Design a validation loop for structured output including retry logic and failure conditions
 - Identify prompt patterns that increase hallucination risk in tool-calling contexts
 - Select the appropriate output format for a given downstream consumer
+
+---
 
 ## Domain 5: Context Management and Reliability (15%)
 

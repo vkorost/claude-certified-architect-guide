@@ -2,9 +2,9 @@
 
 Terms are listed alphabetically. Each definition covers the concept as it applies to Claude architecture and the CCA-F exam. Where a term has a specific technical meaning that differs from its colloquial use, the technical meaning is given.
 
-**--bare flag** A Claude Code CLI flag that suppresses interactive UI elements and produces machine-readable output. Used in CI/CD contexts where Claude is invoked as a pipeline step rather than an interactive session.
+**–bare flag** A Claude Code CLI flag that suppresses interactive UI elements and produces machine-readable output. Used in CI/CD contexts where Claude is invoked as a pipeline step rather than an interactive session.
 
-**-p flag** The "print" flag in Claude Code CLI invocations. Enables non-interactive, single-turn execution. Combined with --bare for fully automated pipeline runs.
+**-p flag** The “print” flag in Claude Code CLI invocations. Enables non-interactive, single-turn execution. Combined with –bare for fully automated pipeline runs.
 
 **agentic loop** The execution cycle in which Claude receives a message, produces a response that may include tool calls, executes tools, receives tool results, and continues until a terminal stop_reason is reached.
 
@@ -12,7 +12,7 @@ Terms are listed alphabetically. Each definition covers the concept as it applie
 
 **context window** The total token budget available in a single Claude API call, encompassing the system prompt, conversation history, tool definitions, tool results, and the current response being generated.
 
-**DataWithProvenance** An architectural pattern in which each piece of data produced by a subagent is wrapped with metadata identifying its source, the subagent that produced it, and the conditions under which it was generated. Prevents silent data corruption in multi-agent pipelines.
+**DataWithProvenance** An architectural *pattern* in which each piece of data produced by a subagent is wrapped with metadata identifying its source, the subagent that produced it, and the conditions under which it was generated. Prevents silent data corruption in multi-agent pipelines.
 
 **end_turn** A stop_reason value indicating that Claude has completed its response and does not require further tool execution. The loop terminates normally.
 
@@ -28,7 +28,7 @@ Terms are listed alphabetically. Each definition covers the concept as it applie
 
 **lost-in-the-middle effect** The empirical tendency for language models to underweight information that appears in the middle of a long context window relative to information at the beginning or end. A known reliability risk in long-running agents with large histories.
 
-**max_tokens** A stop_reason value indicating that Claude's response was cut off because it reached the token limit set by the caller. Requires explicit handling; the response is incomplete.
+**max_tokens** A stop_reason value indicating that Claude’s response was cut off because it reached the token limit set by the caller. Requires explicit handling; the response is incomplete.
 
 **MCP (Model Context Protocol)** An open protocol for connecting Claude to external tool servers. MCP servers expose tools, resources, and prompts over a standardized interface. Claude Code supports local and remote MCP servers.
 

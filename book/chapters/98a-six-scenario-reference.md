@@ -1,6 +1,8 @@
 # Six Scenario Reference
 
-The six exam scenarios are not isolated vignettes. They are recurring architectural contexts that appear across multiple questions and multiple domains. Each one tests a different cluster of trade-offs. Knowing the scenarios before you sit the exam means you are not spending cognitive load on "what kind of system is this" when the question is actually "which configuration choice is correct here."
+The six exam scenarios are not isolated vignettes. They are recurring architectural contexts that appear across multiple questions and multiple domains. Each one tests a different cluster of trade-offs. Knowing the scenarios before you sit the exam means you are not spending cognitive load on “what kind of system is this” when the question is actually “which configuration choice is correct here.”
+
+---
 
 ## Scenario 1: Customer Support Agent
 
@@ -10,21 +12,27 @@ The six exam scenarios are not isolated vignettes. They are recurring architectu
 
 **Chapters:** 1, 11, 12
 
+---
+
 ## Scenario 2: Code Review Pipeline
 
 **Primary domains:** Domain 3 (Configuration and Customization), Domain 1 (Agentic Architecture)
 
-**What it tests:** CI/CD integration patterns, session isolation using the --bare flag and -p flag, and the risks of persistent state across review sessions. How CLAUDE.md configuration interacts with automated pipeline runs. Preventing context bleed between independent review jobs.
+**What it tests:** CI/CD integration patterns, session isolation using the –bare flag and -p flag, and the risks of persistent state across review sessions. How CLAUDE.md configuration interacts with automated pipeline runs. Preventing context bleed between independent review jobs.
 
 **Chapters:** 3, 6, 8
+
+---
 
 ## Scenario 3: Multi-Agent Research System
 
 **Primary domains:** Domain 1 (Agentic Architecture), Domain 5 (Context Management and Reliability)
 
-**What it tests:** Hub-and-spoke coordination, coordinator-to-subagent delegation, and the provenance problem: knowing which subagent produced which output and whether that output can be trusted. Handling subagent failure without corrupting the coordinator's result. Context partitioning across a multi-agent graph.
+**What it tests:** Hub-and-spoke coordination, coordinator-to-subagent delegation, and the provenance problem: knowing which subagent produced which output and whether that output can be trusted. Handling subagent failure without corrupting the coordinator’s result. Context partitioning across a multi-agent graph.
 
 **Chapters:** 2, 11, 12
+
+---
 
 ## Scenario 4: Document Processing Pipeline
 
@@ -34,6 +42,8 @@ The six exam scenarios are not isolated vignettes. They are recurring architectu
 
 **Chapters:** 4, 9, 10
 
+---
+
 ## Scenario 5: Enterprise Deployment
 
 **Primary domains:** Domain 3 (Configuration and Customization), Domain 2 (Tool Design)
@@ -41,6 +51,8 @@ The six exam scenarios are not isolated vignettes. They are recurring architectu
 **What it tests:** The three-layer CLAUDE.md hierarchy: global, project, and folder-level configuration. Permission inheritance and override semantics. How slash commands and skills interact with organizational policy. The permissionMode settings and when bypassPermissions is appropriate versus dangerous. MCP server scoping in an enterprise context.
 
 **Chapters:** 5, 6, 7
+
+---
 
 ## Scenario 6: Monitoring Dashboard Agent
 
