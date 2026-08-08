@@ -1,6 +1,6 @@
 # Glossary
 
-Terms are listed alphabetically. Each definition covers the concept as it applies to Claude architecture and the CCA-F exam. Where a term has a specific technical meaning that differs from its colloquial use, the technical meaning is given.
+Terms are listed alphabetically. Each definition covers the concept as it applies to Claude architecture and the CCAR-F exam. Where a term has a specific technical meaning that differs from its colloquial use, the technical meaning is given.
 
 **–bare flag** A Claude Code CLI flag that suppresses interactive UI elements and produces machine-readable output. Used in CI/CD contexts where Claude is invoked as a pipeline step rather than an interactive session.
 

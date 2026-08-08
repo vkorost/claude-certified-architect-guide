@@ -268,6 +268,8 @@ document"
 
 When developers review extraction results and dismiss findings as incorrect, the detected_pattern field allows systematic analysis: are dismissals concentrated in documents with a particular structural pattern? If so, few-shot examples covering that pattern (as noted in Chapter 9) or schema adjustments for that pattern are the fix. Without detected_pattern, dismissal analysis requires manual review of source documents.
 
+(For the decision framework that distinguishes schema fixes from few-shot and from other interventions when an extraction pipeline fails, see the intervention classifier in Chapter 9.)
+
 ---
 
 ## When Retries Are Not the Answer

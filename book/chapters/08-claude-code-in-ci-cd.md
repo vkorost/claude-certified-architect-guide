@@ -93,6 +93,8 @@ A Claude Code session retains context. The session that generated a module knows
 
 **Review-session isolation** means: the session that reviews code must be completely separate from the session that generated it. Not --resume. Not --continue. A **new invocation**, with no session ID linking it to the generator.<sup>[2]</sup>
 
+(This is the review-specific exception to a general capability. For when session resumption and forking are correct, and the decision rules governing resume-versus-fresh, see the session-state section in Chapter 2.)
+
 The correct CI architecture:
 
 ```
@@ -123,6 +125,18 @@ Review this updated diff and report ONLY issues that are new or were not address
 ```
 
 The reviewer still runs in an isolated session. But it is given enough context to know what has already been flagged. The isolation principle is preserved; the duplicate-comment problem is not.
+
+---
+
+## Multi-Pass Review
+
+Review-session isolation solves the bias problem: the reviewer does not share the generator's reasoning context. Multi-pass review solves a different problem: attention dilution across files.
+
+The failure signature is distinctive. A single-pass review of a large changeset (ten or more files in one invocation) produces inconsistent depth: obvious issues caught in one file are missed in another, the same anti-pattern is flagged in file three and approved without comment in file seven, and the reviewer's thoroughness visibly decays as context fills. The root cause is that the model's attention is spread across too many files simultaneously, and the later files receive whatever capacity remains after the earlier files consumed their share.
+
+The fix is structural decomposition of the review itself into two layers. Per-file local passes: each file gets its own focused review invocation, examining internal logic, style violations, and local correctness in isolation. Then a separate cross-file integration pass: a final invocation that receives the per-file findings plus the dependency graph and checks for issues that span boundaries (data-flow mismatches, inconsistent error-handling conventions, API contract violations between modules, import cycles introduced by the changeset as a whole). The local passes catch depth issues; the integration pass catches breadth issues. Neither alone covers both.
+
+This is orthogonal to the multi-instance pattern described above. Three review architectures exist for three distinct failure modes, and the exam expects candidates to distinguish them cleanly. Multi-instance review (independent reviewer, no shared context) corrects for generation-context bias: the generator's retained reasoning would corrupt a same-session review. Multi-pass review (per-file local passes plus cross-file integration) corrects for attention dilution across files: a single pass over many files loses depth. Second-pass self-critique, the evaluator-optimizer pattern in Chapter 12, corrects for per-case quality variance: the same draft checked against a completeness rubric before delivery. Different failures, different architectures. The stem tells you which failure is in play; match the architecture to it.
 
 ---
 

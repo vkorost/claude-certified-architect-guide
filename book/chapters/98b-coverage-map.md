@@ -1,6 +1,6 @@
 # Coverage Map
 
-This map shows how the book’s chapters align to the five CCA-F exam domains and their task statements. Use it to identify which chapters to review when drilling a specific domain.
+This map shows how the book’s chapters align to the five CCAR-F exam domains and their task statements. Use it to identify which chapters to review when drilling a specific domain.
 
 ---
 

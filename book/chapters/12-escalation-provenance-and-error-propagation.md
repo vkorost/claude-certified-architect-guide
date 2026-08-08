@@ -62,6 +62,22 @@ The handoff summary is the bridge between the agent’s context and the human’
 
 ---
 
+## Self-Critique: The Evaluator-Optimizer Pattern
+
+There is a failure mode that looks like an escalation problem but is not. The agent resolves the case correctly. The customer is not asking for a human. No threshold is exceeded, no policy gap exists, no match is ambiguous. And satisfaction still drops, because the explanation is inconsistent: one resolution omits the relevant policy, the next omits the timeline, a third omits the next steps. The resolution is right; the communication around it is unreliable, and the specific gap is different every time.
+
+None of the escalation triggers fire here, and none of them should. This is not a "when to hand off" problem. It is an output-quality problem, and the tool for it is the evaluator-optimizer pattern.
+
+The pattern is a same-model second pass. After the agent drafts a response, it evaluates that draft against an explicit completeness rubric before presenting it: Does this address the customer’s actual concern? Does it include the relevant policy context? Does it state the timeline and the next steps? Does it anticipate the obvious follow-up question? If the draft fails the rubric, the model revises and re-checks. Only the passing version reaches the customer.
+
+Distinguish this carefully from the same-session self-review anti-pattern in Chapter 8. Those are not the same operation, and conflating them is an exam trap. The Chapter 8 anti-pattern is a generator reviewing its own work for correctness: the session that wrote the code is asked whether the code is right, and it cannot answer honestly because it retains all the reasoning that produced the code and is biased toward confirming its own decisions. The fix there is an independent instance with no shared context. The evaluator-optimizer pattern is a different operation applied to a different target. It checks a draft for completeness against a rubric, not for correctness against the model’s own prior reasoning. There is no confirmation-bias problem because the model is not being asked to second-guess a conclusion; it is being asked to check a response against a checklist. The same model can do that reliably in the same session.
+
+This is also why self-critique, not few-shot, is the correct intervention when the defect varies case to case. Few-shot examples teach a fixed pattern. When the omission is a moving target (policy this time, timeline next time, next-steps the time after), a finite example set cannot enumerate the space of possible gaps. A rubric check catches whatever gap appears in this specific output, because the rubric is defined abstractly over the dimensions of completeness rather than over a list of pre-seen cases. The intervention classifier in Chapter 9 turns on exactly this discriminator: the word "vary" in the stem eliminates few-shot and selects self-critique.
+
+Keep this separate from the two review architectures the exam groups under Task 4.6: multi-instance and multi-pass review. Multi-instance review is a separate model instance with no shared reasoning context, the independent-reviewer pattern from Chapter 8; it is correct when the target is correctness and the generator’s retained context would bias the review. Multi-pass review, also covered in Chapter 8, splits a large multi-file review into per-file passes plus a cross-file integration pass to counter attention dilution; it is a decomposition move, not a self-critique move. The evaluator-optimizer pattern described here is a third, distinct operation: the same model running a second-pass check of a single draft against a completeness rubric. Three patterns, three failures. Per-case quality that varies unpredictably calls for the second-pass self-critique here; a generator biased toward confirming its own reasoning calls for multi-instance review; attention diluted across many files calls for multi-pass review. Read the stem for the failure it actually describes; the options will usually offer more than one, and the wrong choice is the right pattern aimed at the wrong failure.
+
+---
+
 ## Access Failure vs Valid Empty Result
 
 This is the most-tested distinction in Domain 5, and the failure mode is catastrophically silent.<sup>[5]</sup>

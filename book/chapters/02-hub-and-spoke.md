@@ -38,6 +38,16 @@ The coordinator carries four responsibilities that belong to it alone and to not
 
 **Dynamic subagent selection.** The coordinator decides which subagents to invoke based on the query’s actual requirements, not on a fixed pipeline sequence. This is not optional behavior. It is the mechanism by which the hub-and-spoke topology delivers any advantage over a fixed sequential chain.
 
+The coordinator’s decomposition itself follows one of two patterns, and the exam tests the selection rule between them.
+
+**Fixed sequential pipeline (prompt chaining).** The stages are known before execution starts. A code-review pipeline that analyzes each file individually, then runs a cross-file integration pass for dependency and data-flow issues, is a fixed pipeline: the number of stages, their order, and their inputs are determined by the PR’s file list, not by intermediate findings. Use this when the work is predictable and multi-aspect (multiple files, multiple review dimensions) but the decomposition itself does not depend on what any single stage discovers.
+
+**Dynamic adaptive decomposition.** The subtasks emerge from findings. A legacy-codebase investigation that starts by mapping the directory structure, identifies high-impact areas from that map, creates a prioritized analysis plan, then adapts as dependency relationships surface is a dynamic decomposition: the second stage cannot be specified until the first stage reports, because what to investigate depends on what exists. Use this when the work is open-ended and the structure of the problem is itself unknown at the start.
+
+The selection rule: if you can enumerate the stages before the first tool call fires, use a fixed pipeline. If the stages depend on intermediate results, use dynamic decomposition. The coordinator’s dynamic subagent selection (choosing which agents to invoke per query) is the runtime expression of the second pattern. The "map structure first, then prioritize, then adapt" sequence that appears in the exam’s open-ended investigation scenarios is the canonical worked example of the adaptive arm.
+
+(Chapter 9’s intervention classifier uses the structural-versus-recognition distinction to separate decomposition fixes from few-shot fixes when the same domain surfaces in an exam stem.)
+
 ---
 
 ## The Agent Tool
@@ -171,6 +181,16 @@ Both anti-patterns share a root cause: the coordinator is not reasoning about th
 
 ---
 
+## Decomposing a Multi-Concern Request
+
+Decomposition is not only a multi-agent move. The same principle applies inside a single agent when one user message carries several independent concerns. "I need a refund for order #1234 and I want to update the shipping address on order #5678" is two tasks wearing one sentence. An agent that treats it as a single undifferentiated request tends to address one concern and drop the other, or to cross-wire the parameters between them.
+
+The pattern is: split the message into its distinct concerns, handle each one as a separate unit of work, and synthesize the results into one reply. Critically, the concerns share context rather than being processed in isolation. The customer's verified identity, established once, applies to both the refund and the address change; the agent does not re-verify per concern, and it does not re-fetch the customer record for each task. Shared context established once, applied across every decomposed concern, then a single unified resolution.
+
+This is distinct from the recognition-gap version of the same scenario. If an agent already handles single-concern requests well but its accuracy collapses specifically on multi-concern messages because it fails to notice the second concern, that is a pattern the model can be taught with examples, and few-shot is the cheaper fix. The decomposition pattern here is the structural answer: it applies when the workflow itself is wasteful or error-prone (re-fetching, re-verifying, sequential handling of independent work), not when the model simply needs to recognize a pattern it otherwise executes correctly. Chapter 9's intervention classifier draws this line explicitly; the discriminator is whether the stem quotes a recognition failure or a structural inefficiency.
+
+---
+
 ## Three Ways to Create Subagents
 
 The SDK supports three creation paths.<sup>[3]</sup>
@@ -194,6 +214,22 @@ Intermediate tool calls stay inside the subagent. The parent receives only the s
 This is not just an efficiency gain. It is what makes iterative refinement feasible. The coordinator can invoke synthesis, evaluate the output, identify a gap, re-delegate to document analysis with a targeted query, receive the additional findings, and re-invoke synthesis with the enriched inputs. Each pass keeps the coordinator’s context manageable because the subagents absorb the exploration cost internally.
 
 The research system’s “re-delegate until coverage is sufficient” loop only works because the coordinator is not paying the context cost of each subagent’s internal work.<sup>[2]</sup>
+
+---
+
+## Session State: Resumption and Forking
+
+A session is a conversation transcript. It persists the exchange of messages and tool calls, not the filesystem. When Claude Code closes, the session stays on disk. What you do with that stored transcript on the next invocation is the subject of Task Statement 1.7, and the exam tests three operations: resume, fork, and start fresh.
+
+**Resumption.** The --resume flag (short form -r) continues a named session: claude --resume “auth-refactor” picks up exactly where that conversation left off, with the full prior transcript restored. The --continue flag (short form -c) resumes the most recent session in the current directory without requiring a name. Named resumption is the safer default in any directory that has hosted multiple unrelated tasks, because --continue silently picks up whichever session ran last, which may not be the one you intend.
+
+**Forking.** The --fork-session flag, combined with --resume or --continue, branches the session: claude --resume “auth-refactor” --fork-session creates a new session whose transcript starts as a copy of the original, but diverges from that point forward. The original remains untouched. In the Agent SDK, the same operation is the fork_session boolean field on ClaudeAgentOptions, set alongside a resume target. Forking beats resuming the original twice when two approaches need to diverge from a shared analysis baseline (comparing two refactoring strategies, for example, or two test approaches that share the same initial codebase analysis). Forking beats copying context into a fresh session because the fork preserves the full tool-call history; a pasted summary loses it.
+
+The resume-versus-start-fresh decision is the load-bearing exam distinction. Resume when prior context is mostly valid: the codebase has not changed substantially, and the session’s cached tool results still reflect reality. When resuming after changes, explicitly inform the agent which files or functions changed so re-analysis is targeted rather than blind. Start fresh with an injected structured summary when prior tool results are stale or large-scale changes have occurred. Stale tool results in a resumed transcript mislead the agent because it treats cached file contents as current. The structured summary (the case-facts and structured-state machinery covered in Chapter 11) gives the new session the conclusions without the stale evidence.
+
+One disambiguation matters because the book uses the word “fork” in two unrelated senses. The context: fork field in a skill’s SKILL.md frontmatter (Chapter 7) isolates that skill’s execution in a sub-agent context so intermediate exploration does not pollute the parent conversation. The --fork-session flag branches a whole session transcript so two approaches can diverge from the same prior state. They share a word but not a mechanism: context: fork is about sub-agent isolation within a single invocation; session forking is about branching the trajectory of an entire conversation across invocations.
+
+A fork does not fix stale context. If the session you fork from contains outdated tool results, every branch inherits that staleness. Forking is a divergence tool, not a freshness tool. When the problem is stale cached results rather than wanting to explore two paths, start fresh.
 
 ---
 

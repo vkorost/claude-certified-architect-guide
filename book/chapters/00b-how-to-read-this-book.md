@@ -4,7 +4,7 @@
 
 ## Structure Follows Domain Weighting
 
-The CCA-F exam has five domains. They are not equally weighted. Agentic Architecture is 27% of the exam. That means three chapters cover it. Context Management and Reliability is 15%. That means two chapters cover it. The chapter order reflects those priorities, not a logical tour of the API.
+The CCAR-F exam has five domains. They are not equally weighted. Agentic Architecture is 27% of the exam. That means three chapters cover it. Context Management and Reliability is 15%. That means two chapters cover it. The chapter order reflects those priorities, not a logical tour of the API.
 
 The domain-to-chapter mapping:
 

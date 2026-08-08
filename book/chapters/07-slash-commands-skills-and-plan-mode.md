@@ -42,6 +42,8 @@ The current recommended format for new work is .claude/skills/<name>/SKILL.md, w
 
 A skill is a directory inside .claude/skills/ (project) or ~/.claude/skills/ (user) that contains a SKILL.md file.<sup>[3]</sup> The file has YAML frontmatter and markdown content. The frontmatter is where the interesting decisions happen.
 
+The two scopes are not equal when they collide. A project skill in .claude/skills/ and a personal skill in ~/.claude/skills/ that share the same name do not merge and do not both activate; the project skill takes precedence and the personal one is shadowed. This has a direct operational consequence the exam tests. When a developer wants to customize a team skill for their own workflow, copying it to ~/.claude/skills/ under the same name does not work: the project version still wins, and the personal customization never runs. The fix is to give the personal version a different name, for example a personal /my-commit alongside the team's /commit. Both are then discoverable, and the model selects between them on description. This mirrors the precedence rule for agent definitions covered in Chapter 2, where a programmatically defined agent overrides a filesystem agent of the same name: same-name collisions resolve by scope precedence, not by merge.
+
 ### Discovery and invocation
 
 When Claude Code starts, it reads skill metadata from the filesystem. The model sees each skill’s description and decides autonomously when to invoke it based on that description. A well-written description is a routing key: specific, keyword-rich, honest about what the skill does and under what conditions. A vague description produces unpredictable invocation.<sup>[3]</sup>
@@ -59,6 +61,8 @@ Three frontmatter fields determine skill behavior in CLI usage. Understanding al
 This is the most important field. When a skill has context: fork in its frontmatter, the skill runs in an isolated sub-agent context. The main conversation does not see the intermediate steps: the greps, the reads, the exploratory dead ends.<sup>[4]</sup> The main session receives the summary output from the skill, not the full transcript of everything the skill did to produce it.
 
 The alternative is a skill without context: fork, which runs in the main context just like a command. For a skill that reads one file and produces a compact answer, this is fine. For a skill that explores a large codebase, brainstorms multiple approaches, and discards three of them before settling on one, running in the main context pollutes the session with noise the developer has to mentally filter for the rest of the conversation.
+
+(Do not confuse this with session forking. The context: fork frontmatter field isolates a skill's exploration in a sub-agent context within a single invocation. The --fork-session CLI flag, covered in Chapter 2, branches a whole session transcript so two investigation paths can diverge from a shared prior state. Same word, unrelated mechanisms.)
 
 Consider a refactoring skill that needs to understand the full dependency graph before making any changes. Without context: fork, every grep result, every file read, every intermediate analysis lives in the main context. The developer ends up in a session where finding the actual changes requires scrolling through hundreds of lines of exploration. With context: fork, the skill does all of that inside the fork, and the main session sees only the final refactored output and a brief summary of what changed.<sup>[4]</sup>
 

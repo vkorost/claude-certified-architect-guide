@@ -315,6 +315,8 @@ When the underlying rule is undefined, define it first. Few-shot built on a vagu
 
 Few-shot owns exactly one failure class: a consistent, recognizable pattern (or hard-to-verbalize mapping) the model fails to apply despite performing well otherwise. Every other failure class, definitional, structural, capability-latent, or variable-quality, has a different owner, and selecting few-shot for those is the exam's most common engineered wrong answer.
 
+(For the multi-pass review architecture that decomposes a large changeset into per-file passes plus an integration pass, see Chapter 8. Multi-pass review corrects for attention dilution, not for any of the five intervention failures above; it is a decomposition of the review task itself.)
+
 ---
 
 ## Key Takeaways

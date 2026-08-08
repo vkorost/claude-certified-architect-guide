@@ -2,11 +2,11 @@
 
 ---
 
-## What the CCA-F Is
+## What the CCAR-F Is
 
 The Claude Certified Architect Foundations certification is Anthropic’s foundational credential for engineers and architects working with Claude at a systems level. It validates the ability to design, configure, and reason about Claude-based systems across the full range of architectural concerns: agentic loops, tool ecosystems, configuration hierarchies, prompting strategies, and context management.
 
-The CCA-F is not a general AI literacy credential. It is specifically about Claude’s architecture and the trade-offs that appear when you build production systems with it.
+The CCAR-F is not a general AI literacy credential. It is specifically about Claude’s architecture and the trade-offs that appear when you build production systems with it.
 
 ---
 
@@ -30,22 +30,22 @@ The exam tests architectural reasoning, not recall. Questions are scenario-based
 
 ## Administration
 
-The CCA-F is proctored through ProctorFree and administered through Skilljar. Candidates schedule and sit the exam through the Skilljar platform. ProctorFree handles the remote proctoring session.
+The CCAR-F is proctored through ProctorFree and administered through Skilljar. Candidates schedule and sit the exam through the Skilljar platform. ProctorFree handles the remote proctoring session.
 
 ---
 
 ## The Six Recurring Scenarios
 
-Six exam scenarios appear throughout the exam in various question contexts:
+The exam draws four of these six scenarios at random for any given sitting. Each scenario recurs across the certification because they represent the canonical architectural problems that Claude-based systems encounter:
 
-1. **Customer Support Agent**, a multi-tool system with escalation logic
-2. **Code Review Pipeline**, covering CI/CD integration and session isolation
+1. **Customer Support Resolution Agent**, a multi-tool system with escalation logic
+2. **Code Generation with Claude Code**, covering CI/CD integration and session isolation
 3. **Multi-Agent Research System**, using hub-and-spoke coordination with provenance requirements
-4. **Document Processing Pipeline**, focused on structured output and validation
-5. **Enterprise Deployment**, covering CLAUDE.md hierarchy and permission configuration
-6. **Monitoring Dashboard Agent**, testing context window management and tool selection
+4. **Structured Data Extraction**, focused on structured output and validation
+5. **Developer Productivity with Claude**, covering CLAUDE.md hierarchy and permission configuration
+6. **Claude Code for Continuous Integration**, testing context window management and tool selection
 
-Familiarity with these scenarios is practical preparation. They recur because they represent the canonical architectural problems that Claude-based systems face in production.
+Familiarity with all six scenarios is practical preparation even though only four appear on any given exam. They recur because they represent the canonical architectural problems that Claude-based systems solve at scale.
 
 ---
 
