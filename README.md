@@ -37,11 +37,18 @@ The book is organized around the five CCA-F exam domains, each mapped to specifi
 
 Each chapter introduces one or two named concepts as cognitive handles. These are not conclusions; they name the point where the engineering discipline forks and the principled decision must be made.
 
+## Download
+
+- [**PDF**](https://github.com/vkorost/claude-certified-architect-guide/releases/latest/download/Claude-Certified-Architect-Foundations.pdf) - for offline reading and print.
+- [**EPUB**](https://github.com/vkorost/claude-certified-architect-guide/releases/latest/download/Claude-Certified-Architect-Foundations.epub) - for e-readers.
+
+Both are attached to the [latest release](https://github.com/vkorost/claude-certified-architect-guide/releases/latest) and always point at the current revision. The book is corrected in place rather than re-versioned, so these links never go stale.
+
 ## What's in this repo
 
 - `README.md`: this file.
-- [`book/Claude-Certified-Architect-Foundations.pdf`](./book/Claude-Certified-Architect-Foundations.pdf): PDF for offline reading and print.
-- [`book/Claude-Certified-Architect-Foundations.epub`](./book/Claude-Certified-Architect-Foundations.epub): EPUB for e-readers.
+- [`book/Claude-Certified-Architect-Foundations.pdf`](https://github.com/vkorost/claude-certified-architect-guide/releases/latest/download/Claude-Certified-Architect-Foundations.pdf): PDF for offline reading and print.
+- [`book/Claude-Certified-Architect-Foundations.epub`](https://github.com/vkorost/claude-certified-architect-guide/releases/latest/download/Claude-Certified-Architect-Foundations.epub): EPUB for e-readers.
 - `book/chapters/`: the 12 chapters as individual Markdown files, plus front matter (preface, how-to-read, about-the-certification), back matter (scenario reference, coverage map, glossary), and Appendix G (endnotes).
 - [`LICENSE-CODE`](./LICENSE-CODE): MIT License for code samples.
 - [`LICENSE-PROSE`](./LICENSE-PROSE): CC BY-NC-SA 4.0 for prose content.
@@ -79,4 +86,4 @@ In practice: the code is free to use, modify, and incorporate into any project, 
 
 ---
 
-[![Claude Certified Architect Foundations cover](./book/Claude-Certified-Architect-Foundations-Cover.jpg)](./book/Claude-Certified-Architect-Foundations.pdf)
+[![Claude Certified Architect Foundations cover](./book/Claude-Certified-Architect-Foundations-Cover.jpg)](https://github.com/vkorost/claude-certified-architect-guide/releases/latest/download/Claude-Certified-Architect-Foundations.pdf)
