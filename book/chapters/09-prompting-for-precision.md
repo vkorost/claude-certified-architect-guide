@@ -12,7 +12,9 @@ The reports come back. Hundreds of findings. Duplicate variable names in test fi
 
 Two weeks later, someone merges a PR with a hardcoded API key. The review flagged it. Nobody read far enough to see it.
 
-This is the scenario that anchors Task Statement 4.1 in the exam guide.<sup>[1]</sup> And it is not a story about the model performing badly. The model did exactly what the prompt asked. It was thorough. It flagged suspicious things. The problem is that “thorough” and “suspicious” are not specifications. They are intentions. The model fills in the blanks with its own judgment, and its judgment does not match the team’s priorities.
+That vignette is this book's own. The exam guide does not print a case like it. What the guide supplies is the frame around it: Task Statement 4.1 is about designing prompts with explicit criteria so that precision improves and false positives fall, and Scenario 5 puts Claude Code in a CI pipeline that reviews code and returns feedback on pull requests, with the stated design problem being feedback a developer can act on without a flood of false alarms.<sup>[1,2]</sup> The illustration above is what that problem looks like unsolved.
+
+And it is not a story about the model performing badly. The model did exactly what the prompt asked. It was thorough. It flagged suspicious things. The problem is that “thorough” and “suspicious” are not specifications. They are intentions. The model fills in the blanks with its own judgment, and its judgment does not match the team’s priorities.
 
 The fix is not to ask the model to “be more selective.” That is still not a specification.
 
@@ -22,7 +24,7 @@ The fix is to write a specification.
 
 ## The Noise Problem Has a Name
 
-When a code review tool flags too many non-issues, developers stop reading the reports. Including the real findings. The exam guide calls this alert fatigue, and it is directly tested.<sup>[1,2]</sup>
+When a code review tool flags too many non-issues, developers stop reading the reports. Including the real findings. This book calls that alert fatigue. The exam guide does not use the phrase, and no Anthropic source does either, so the term is a convenience rather than a citation. The mechanism underneath it is another matter: the guide states it directly under Task Statement 4.1, and the mechanism is what gets tested.<sup>[1]</sup>
 
 Alert fatigue has a compounding property that makes it worse than it first appears. It is not just that developers ignore the noisy category. High false-positive categories undermine developer trust in accurate categories.<sup>[1]</sup> If the style section of the report is reliable garbage, the instinct is to distrust the security section too. The tool’s overall credibility collapses, and it stops functioning as a safety mechanism even in the areas where it actually works.
 
@@ -36,7 +38,9 @@ That is the named concept for this chapter. Say it again: explicit criteria over
 
 ## What Explicit Looks Like
 
-The exam guide provides the contrast directly.<sup>[1,2]</sup> Compare these two prompts for code review:
+The exam guide draws this contrast in a single line. It pairs a comment check stated as a condition, flag a comment only where its claim and the code's behavior conflict, against the same check stated as a goal, comment accuracy.<sup>[1]</sup> One of those can be evaluated. The other has to be interpreted.
+
+The prompt pair below expands that one line into a working review specification. It is this book's construction, not a block the guide prints. Compare them:
 
 ```
 # VAGUE
@@ -68,7 +72,7 @@ Notice what the explicit version accomplishes that vague instructions cannot:
 
 **Severity** is categorical. Not “rate severity 1-10” (which the model will interpret differently on different runs), but a fixed mapping: rules 3 and 5 are critical, rules 1 and 2 are warnings, rule 4 is info. The classification is auditable. Downstream tooling can filter on severity reliably.
 
-The output format is also part of the specification. Four required fields per finding, in a consistent structure. This is not stylistic preference. When the review runs in CI and the output feeds a PR comment bot (as in Scenario 5), the format is a contract that downstream code depends on.<sup>[3]</sup>
+The output format is also part of the specification. Four required fields per finding, in a consistent structure. This is not stylistic preference. Scenario 5 puts the review in a CI pipeline that returns feedback on pull requests, and Task Statement 3.6 names the mechanism that carries feedback there: findings emitted in a machine-parseable structure so that a later step can post them inline.<sup>[2]</sup> The comment bot in this book's example illustrates that later step. The guide does not describe a bot, and nothing here depends on one. Once any downstream process parses the output, the format is a contract, which is why Task Statement 4.2 makes output format its own demonstration target rather than folding it into the content criteria.<sup>[1]</sup>
 
 ---
 
@@ -104,19 +108,29 @@ When severity must involve a contextual judgment, the specification should inclu
 
 Few-shot examples are the most effective technique for achieving consistently formatted, actionable output when detailed instructions alone produce inconsistent results.<sup>[1]</sup>
 
-The exam guide is specific about count: 2-4 targeted examples is the documented optimal range for ambiguous scenarios.<sup>[1,2]</sup> Not 5-8, not 10. Providing ***too many*** examples (***more than 6***) bloats the prompt without adding value.<sup>[2]</sup> Providing too few for genuinely ambiguous cases leaves the model without enough signal to generalize.
+The exam guide is specific about count. Its skill bullet for this task statement asks for 2 to 4 targeted examples for ambiguous scenarios, each of them showing why one action was chosen rather than the plausible alternatives available at the time.<sup>[1]</sup> That is the number to carry into the exam, and the reasoning requirement is not decoration attached to it; it is half of what the bullet asks for.
+
+No Anthropic source names a maximum. A specific ceiling quoted in third-party study material is invented until the documentation carries it, and the documentation does not. What the current prompting guidance does name is a preferred count, three to five examples for best results.<sup>[3]</sup> That is advice about examples in general rather than about the narrow ambiguous-case use Task Statement 4.2 frames, and the two ranges overlap at three and four. Where they diverge, the exam's number governs, because the exam is testing its own material. An answer of three or four satisfies both and is the safe place to stand.
+
+The lower bound is worth as much attention as the upper one. A single example does not establish a pattern; it establishes a case, and the model has no way to tell which features of that case were the point. Too few examples for a genuinely ambiguous boundary leaves the model without enough signal to generalize, which is exactly what the guide's floor of two is guarding against.
 
 Where few-shot examples earn their cost is in tasks with ambiguous boundaries. When the boundary between “flag this” and “skip this” requires contextual judgment that prose descriptions cannot fully specify, examples show the reasoning. Not just the outcome, the reasoning.<sup>[1]</sup>
 
 This is a critical distinction. An example that shows input and correct output teaches the model the answer for that specific case. An example that shows input, correct output, and the reasoning for why that output was chosen (“this is a genuine issue, not a local pattern, because the same function exists in 14 other files with the same missing handler”) teaches the model how to approach similar cases it has not seen.
 
-The exam guide surfaces three specific things few-shot examples should demonstrate:<sup>[1]</sup>
+Three of the demonstrations the exam guide asks few-shot examples to perform bear directly on review output:<sup>[1]</sup>
 
 **Consistent output format.** Every example should use the same output structure. If the desired output is a JSON object with four fields, every example should show a JSON object with those four fields. The model generalizes the structure from the examples; inconsistent examples produce inconsistent output.
 
 **Acceptable patterns vs genuine issues.** A finding that looks like a problem but is actually a deliberate local convention is one of the hardest judgment calls for a code review tool. An example that shows this case explicitly, with the reasoning that identifies it as acceptable, teaches the model to distinguish the two rather than defaulting to one or the other.
 
 **Ambiguous boundary cases.** Provide at least one example where the correct action is not obvious from the rule text alone. Show the example, show the correct classification, and show why. The model uses this to calibrate its judgment on novel patterns that fall near the same boundary.
+
+The guide names two ambiguous cases in particular, and both are worth holding onto, because an item testing this task statement is more likely to be built on one of them than on anything else. The first is choosing the right tool when the request does not make clear which tool applies. The second is finding test coverage gaps at the level of individual branches, inside functions that already have tests.<sup>[1]</sup>
+
+The second one is the sharper of the pair, and it repays a moment of attention. A review tool that flags a function with no tests at all is doing something an instruction can fully specify: look for functions, check whether a corresponding test exists, report the ones that do not. A review tool that notices an untested `else` inside a function whose happy path is covered is doing something else entirely. The function passes every check the rule text describes. The gap is real, and nothing in the rule names it. That is a recognition failure, and recognition is what an example teaches.
+
+Which makes this the cleanest illustration in the domain of why the two task statements are not interchangeable. The reflex fix for missed branches is an instruction: enumerate every conditional in the function and confirm each has a corresponding assertion. That instruction is not a bad instruction. It is a Task Statement 4.1 instruction, and it sharpens a criterion the model is already applying. It does nothing about a case the model is not seeing in the first place. When the diagnosis is that the model does not recognize the case, adding precision to the rule it already follows is effort spent in the wrong place.
 
 Consider the code review context. The rule is “flag functions exceeding 50 lines.” But a file has a 55-line function that is a configuration constant block, not logic. Should it be flagged? A rule that says “functions exceeding 50 lines” technically says yes. But the intent was to catch complex functions, not initialization blocks. An example that shows this case and explains the decision teaches the model to apply the rule’s intent, not just its literal text.
 
@@ -138,11 +152,19 @@ Output:
 
 That example does three things: shows the input, shows the correct output, and explains why this case falls outside the rule’s intent even though it technically matches the rule’s text. A model that has seen this example can generalize to other initialization blocks, documentation generators, and similar patterns without requiring a new rule for each.
 
+Two mechanical points about how examples reach the model, both from the current prompting documentation rather than from the exam guide. The first is structural. Examples belong inside `<example>` tags, with a set of them wrapped in an `<examples>` tag, so that the model can tell a demonstration from an instruction.<sup>[3]</sup> A prompt that runs its examples together with its rules is inviting the model to read one as the other, and the usual symptom is a model that treats the content of an example as a standing constraint on every case.
+
+The second is about what varies across a set. The documentation asks for examples that are diverse enough to cover edge cases and varied enough that the model does not pick up a pattern nobody intended.<sup>[3]</sup> That advice cuts in a specific direction, and it is easy to apply backwards. Vary the case each example shows. Do not vary the shape of the output. The shape is the thing the set is holding constant, and a set whose examples disagree about format teaches the model that format is a choice.
+
+Everything above treats an example as prompt text, which is how Domain 4 frames it. There is a second channel worth knowing about. A tool definition accepts an optional `input_examples` array, and those examples are placed alongside the schema to show the model what a well-formed call looks like.<sup>[4]</sup> Chapter 4 owns that field and covers its behavior, including the fact that it is unsupported on server tools and that it is billed as prompt tokens on every request. The point here is only that the two channels are not substitutes. The `input_examples` array shapes how a tool gets called. Prompt examples shape the judgment the model applies before it decides to call anything and after the result comes back. A precision failure in review output is not repaired by adding examples to a tool definition, and a malformed tool call is not repaired by adding examples to the prompt.
+
 ---
 
 ## When Few-Shot Is Unnecessary
 
-Few-shot examples are not universally valuable. They are expensive in tokens, and for tasks with unambiguous boundaries, they add overhead without improving output quality.<sup>[2]</sup>
+Few-shot examples are not universally valuable, and the reason is narrower than a general appeal to cost. The exam guide reaches for examples on a stated condition: detailed instructions alone are already producing inconsistent results.<sup>[1]</sup> Where the instructions are producing consistent results, the condition is not met and the technique has nothing to repair.
+
+Examples do occupy the prompt, and it is fair to say so, but the only place Anthropic attaches a number to that is the tool definition, where a simple `input_examples` entry is documented at roughly twenty to fifty tokens and a complex nested one at roughly one hundred to two hundred.<sup>[4]</sup> Those are small figures. The argument against unnecessary examples is not that they are expensive. It is that they do no work, and a prompt full of demonstrations that demonstrate nothing is harder to revise later than a prompt without them.
 
 The test: is the task boundary clear from the rule text alone? If the answer is yes, explicit criteria are sufficient and examples add cost without benefit. “*Flag SQL queries constructed with string concatenation*” is largely unambiguous. String concatenation in a SQL context is a recognizable pattern with few edge cases. A clear rule without examples will produce consistent output.
 
@@ -164,13 +186,13 @@ The alternative: decompose the request. Task Statement 4.1’s skill list includ
 
 Explicit decomposition also makes prompt iteration easier. When a category is noisy, you can revise rule 4’s criteria without touching rules 1-3. When a category is missing findings it should catch, you can extend the definition of rule 3 without affecting the severity logic. The structure isolates the knobs.
 
-This connects to how the exam frames iterative refinement for interacting versus independent issues: when fixes interact, provide them together; when they are independent, handle them sequentially.<sup>[4]</sup> The same logic applies to prompt revision. Independent criteria can be tuned independently. Criteria that share ambiguous boundary regions should be revised together.
+This connects to how the exam frames iterative refinement for interacting versus independent issues: when fixes interact, provide them together; when they are independent, handle them sequentially.<sup>[5]</sup> The same logic applies to prompt revision. Independent criteria can be tuned independently. Criteria that share ambiguous boundary regions should be revised together.
 
 ---
 
 ## The Format Constraint Is Not Optional
 
-One pattern in exam questions about prompt precision: separating the criteria from the output format.<sup>[1]</sup> It is easy to write detailed criteria and then leave the output format vague. The model will produce plausible-looking output. But “plausible-looking” is not “consistently structured,” and downstream tooling requires the latter.
+The exam guide keeps criteria and output format as separate concerns, giving format its own skill bullet under Task Statement 4.2 rather than treating it as a property of the criteria.<sup>[1]</sup> The separation is worth respecting, because the two fail independently. It is easy to write detailed criteria and then leave the output format vague. The model will produce plausible-looking output. But “plausible-looking” is not “consistently structured,” and downstream tooling requires the latter.
 
 The output format should specify: - What fields are present in each finding - What values are acceptable for categorical fields (severity, rule number) - What the finding omits (when “no issues found” is itself a valid output, specify what that looks like)
 
@@ -182,7 +204,9 @@ Structured output via tool_use (covered in Chapter 10) enforces the format const
 
 ## What the Exam Tests
 
-The exam tests prompt engineering as specification writing. The scenarios it uses to frame these questions are overwhelmingly from the code review context, which is the canonical case for false positives, developer trust, and the contrast between vague and explicit.<sup>[1,3]</sup>
+The exam tests prompt engineering as specification writing. Domain 4 has two scenario homes in the exam guide, and both of them name prompt engineering as a primary domain: Scenario 5, a CI pipeline running automated reviews and returning feedback on pull requests, and Scenario 6, a structured extraction system reading unstructured documents and validating the result against a schema.<sup>[2]</sup>
+
+That split runs through the task statements as well, and it is a useful thing to notice early. Every illustration under Task Statement 4.1 is a code review illustration, which makes code review the canonical setting for false positives, developer trust, and the contrast between vague and explicit. Task Statement 4.2 divides its illustrations between code review and extraction, the extraction half turning on informal values and on documents whose structure varies from one to the next.<sup>[1]</sup> Reading a stem for which of the two settings it is in is worth the second it costs, because in the common case it narrows which task statement is in play before a single option has been read.
 
 The patterns the exam tests are narrow and specific:
 
@@ -192,9 +216,15 @@ The patterns the exam tests are narrow and specific:
 
 **Disable, then fix.** When a category has high false-positive rates, disable it temporarily while revising the prompt, rather than trying to reduce false positives while the category keeps running.<sup>[1]</sup> This is the sequencing principle.
 
-**2-4 few-shot examples.** The documented optimal range. For ambiguous boundary cases, include the reasoning. For output format, make the examples consistent. Not 5-8, not 1.<sup>[1,2]</sup>
+**2 to 4 few-shot examples.** The count the exam guide names for ambiguous scenarios. For ambiguous boundary cases, include the reasoning. For output format, keep the examples consistent. One example does not establish a pattern. No documented maximum exists anywhere in Anthropic's material, and the general prompting guidance outside the exam prefers three to five, so three or four is the answer that satisfies both.<sup>[1,3]</sup>
 
 **Examples show reasoning.** A few-shot example that shows input and output without reasoning teaches pattern matching. An example that shows input, output, and why teaches generalization.<sup>[1]</sup> The exam distinguishes these.
+
+**One question separates 4.1 from 4.2.** Is the model reporting things it should not, or failing to report things it should? Over-reporting is a precision failure, it belongs to Task Statement 4.1, and the fix is a criterion that names the category to skip. Failing to see a case at all is a recognition failure, it belongs to Task Statement 4.2, and the fix is an example that shows the case being handled. The remedies are not substitutes in either direction. An option offering the right remedy for the other failure is the most common way this domain builds a wrong answer, and it is convincing precisely because the remedy on offer is a good one.
+
+**Prefer the root cause to the workaround.** When the model fails to recognize a case, options that accept the gap and route around it are available and wrong: post-processing the bad output away, degrading gracefully, retrying, or filtering afterwards. All of them leave the recognition failure in place and pay for it on every request. The same principle applies on the 4.1 side, where the wrong reflex is to strip the noisy findings out downstream rather than to stop generating them.
+
+**A version note on shaping output.** Older prompt engineering material controls the shape of a response by prefilling the opening of the assistant turn and letting the model continue from it. That technique is no longer available. On Claude 4.6 and later models, a request carrying a prefilled final assistant message returns a 400 error, and the documented replacement for the formatting and tone cases is an instruction in the system prompt naming what the response should and should not do.<sup>[3]</sup> An option that proposes prefilling a partial response is describing a previous generation's idiom, whatever else is right about it.
 
 ---
 
@@ -202,32 +232,32 @@ The patterns the exam tests are narrow and specific:
 
 **Q1.** A CI pipeline runs code review with the prompt “identify any code quality issues and flag them with appropriate severity.” The team reports the tool flags too many minor style issues and developers have stopped reading the reports, causing critical security findings to be missed. Which change most directly addresses the root cause?
 
-A. Add “be conservative and only flag high-confidence issues” to the prompt.
-B. Replace the vague instruction with a numbered list of specific rule categories and explicit severity mappings for each.
-C. Reduce the number of files sent to the review per run.
+A. Add “be conservative and only flag high-confidence issues” to the prompt.  
+B. Replace the vague instruction with a numbered list of specific rule categories and explicit severity mappings for each.  
+C. Reduce the number of files sent to the review per run.  
 D. Add a confidence score field to the output and filter on scores above 0.8.
 
 *Correct: B. A and D add confidence-based filtering, which the exam guide explicitly identifies as failing to improve precision. C reduces scope but does not fix the underlying vague instruction. B replaces intentional directives with categorical specifications.*
 
 **Q2.** A code review tool has six rule categories. Three produce accurate, trusted findings. Three generate consistent false positives. The team wants to restore developer trust in the tool overall while improving the noisy categories. What is the correct sequencing?
 
-A. Improve all six categories simultaneously before re-enabling any of them.
-B. Disable the three noisy categories, restore trust in the three accurate categories, then revise and re-enable the noisy categories one at a time.
-C. Reduce the number of examples in the few-shot set for the noisy categories.
+A. Improve all six categories simultaneously before re-enabling any of them.  
+B. Disable the three noisy categories, restore trust in the three accurate categories, then revise and re-enable the noisy categories one at a time.  
+C. Reduce the number of examples in the few-shot set for the noisy categories.  
 D. Add “skip minor style issues” to the prompt for all six categories.
 
 *Correct: B. The exam guide specifies temporarily disabling high false-positive categories while improving prompts for those categories. A delays the trust restoration. C addresses few-shot quantity, not the underlying criteria. D adds a vague modifier that does not produce categorical precision.*
 
 **Q3.** A team is implementing few-shot prompting for a code review tool that must distinguish between “genuine issues” and “local patterns the team has intentionally adopted.” They are considering 4, 6, or 10 examples. The examples for the ambiguous boundary cases should include what, in addition to input and output?
 
-A. A severity score for each example, to calibrate severity classification.
-B. Reasoning that explains why the output was chosen over plausible alternatives.
-C. Additional examples from adjacent rule categories to improve generalization.
+A. A severity score for each example, to calibrate severity classification.  
+B. Reasoning that explains why the output was chosen over plausible alternatives.  
+C. Additional examples from adjacent rule categories to improve generalization.  
 D. The file path and line number of the example to improve format consistency.
 
-*Correct: B. The exam guide specifies that **examples for ambiguous cases should show reasoning for why one action was chosen over plausible alternatives.** A adds severity calibration, which is a different concern. C increases the example count toward the 6+ range that bloats prompts. D addresses output format, not the ambiguous-case decision boundary.*
+*Correct: B. The exam guide's skill bullet for this task statement asks that an example for an ambiguous case carry the reasoning behind the choice, not just the choice.<sup>[1]</sup> A adds severity calibration, which is a different concern. C pulls examples in from adjacent rule categories, which dilutes the set rather than sharpening the boundary the stem is about; the number of examples is not what is failing here, and no source names a maximum in any case. D addresses output format, not the ambiguous-case decision boundary.*
 
-Choosing the Intervention
+## Choosing the Intervention
 
 Every Domain 4 scenario question hands you a failing system and four plausible fixes. The fixes are not interchangeable. Each one repairs a different *class* of failure, and the exam's wrong answers are almost always the right intervention applied to the wrong failure class. The skill being tested is not "*know what few-shot is*." It is *"read the failure signature and pick the matching tool*." The chapters teach these tools in isolation because the domains are weighted separately. The exam does not respect that separation, so this section collapses the boundary.
 
@@ -235,13 +265,21 @@ There are five interventions in play across Domains 1, 2, and 4. They map to fiv
 
 **The Five Interventions**
 
-| Intervention | Repairs | Failure signature in the stem |
-| --- | --- | --- |
-| Explicit criteria | Undefined standard of what counts as a violation | "check that X is accurate," vague directive, both false positives and false negatives at once |
-| Few-shot examples | A single consistent pattern the model fails to recognize, or a mapping too complex to verbalize in prose | Clean accuracy drop between two task variants the model otherwise handles well; "interprets prose differently each time" on a fixed transformation |
-| Decompose / parallelize / restructure | A workflow that is structurally wasteful | Inflated tool-call counts, redundant data fetching, sequential investigation of independent concerns, resolution-rate collapse with high round-trips |
-| Self-critique / evaluator-optimizer | Output that is correct but whose quality varies unpredictably per case | "gaps vary by case," "inconsistently explains," omissions that differ case to case, no fixed pattern to the defect |
-| Prompt for a latent native capability | The model can already do the right thing but isn't | Sequential tool calls the model could batch; behavior the model supports natively but has not been instructed to use |
+| Intervention | Repairs | Failure signature in the stem | Ruled out by |
+| --- | --- | --- | --- |
+| Explicit criteria | Undefined standard of what counts as a violation | "check that X is accurate," vague directive, both false positives and false negatives at once | A criterion that is already stated and checkable. If the rule names its own boundary and the model still misses a case, the definition is not what is missing |
+| Few-shot examples | A single consistent pattern the model fails to recognize, or a mapping too complex to verbalize in prose | Clean accuracy drop between two task variants the model otherwise handles well; "interprets prose differently each time" on a fixed transformation | A defect that varies case to case; any quoted tool-call, round-trip or redundancy count; a criterion that was never defined; a behavior the model already supports and was simply never asked for |
+| Decompose / parallelize / restructure | A workflow that is structurally wasteful | Inflated tool-call counts, redundant data fetching, sequential investigation of independent concerns, resolution-rate collapse with high round-trips | A stem with no efficiency signal in it. Output that is wrong or uneven at ordinary cost is a comprehension or quality failure, and reshaping an already-efficient workflow moves neither |
+| Self-critique / evaluator-optimizer | Output that is correct but whose quality varies unpredictably per case | "gaps vary by case," "inconsistently explains," omissions that differ case to case, no fixed pattern to the defect | A fixed, repeatable defect, which is a criterion or an example. Also a correctness failure by the generator, which needs an independent instance, and attention diluted across many files, which needs a multi-pass split. Both belong to Chapter 8 |
+| Prompt for a latent native capability | The model can already do the right thing but isn't | Sequential tool calls the model could batch; behavior the model supports natively but has not been instructed to use | Any behavior the model does not already support, and any failure of judgment or definition. An instruction cannot unlock a capability that is absent, and it cannot supply a rule nobody wrote |
+
+The right-hand column is the half that does the work under time pressure. Finding the intervention that matches a stem is easy when the signature is clean, and the exam rarely offers a clean signature. Eliminating three interventions on the strength of what the stem does not say is both faster and more reliable, because absence is unambiguous in a way that presence is not. A stem that quotes no counts is not a restructuring problem no matter how inefficient the described system sounds. A stem whose defect repeats identically is not a self-critique problem no matter how uneven the output feels to read about.
+
+Two of those eliminations need care, because they are the ones the neighbouring chapters constrain.
+
+The first is the boundary between self-critique and the review architectures. Chapter 8 separates three operations that a stem can make look alike, and the separation is load-bearing here. A generator asked to review its own work for correctness cannot do it honestly, because it carries the reasoning that produced the work and is disposed to confirm it; the remedy is an independent instance with no shared context. A review spread thin across a large changeset is a different failure, dilution rather than bias, and the remedy is a multi-pass split with an integration pass. Neither of those is the evaluator-optimizer pattern, which Chapter 12 treats as a second-pass check of a single draft against a completeness rubric, in the same session, on output that is already correct. Three failures, three owners. The classifier's fourth row is the third of them only, and it is selected by variability, not by error.
+
+The second is the boundary between few-shot and explicit criteria, which is the pair this chapter exists to separate. Few-shot loses whenever the underlying rule was never defined. Examples built on an undefined criterion teach the model a handful of instances of a rule that does not exist, and they fail on the first case that falls outside the set, which is the opposite of what examples are chosen for. Define the rule first. If the rule is defined and the model still cannot see the case, then the examples have something to attach themselves to.
 
 The validation loop (Chapter 10) is a sixth tool, orthogonal to these: it catches *semantic* errors (valid structure, wrong values) and belongs to application code, not the prompt. It is never the answer to a prompt-engineering failure, and it is never substituted by any of the five above.
 
@@ -270,6 +308,8 @@ Specific stem language that *rules few-shot in*:
 
 - A clean accuracy split between two variants of the same task ("94% on single-concern, 58% on multi-concern") where the model handles the easy variant well → recognition gap → few-shot.
 - "interprets the requirements differently each time" on a *fixed* transformation target whose mapping is hard to state in prose → few-shot beats rewriting the prose more precisely.
+- An abstract instruction that behaves inconsistently the further into a long context it sits → replace the abstraction with concrete examples of the behavior. The tempting options here move the instruction somewhere more prominent or re-inject it every few turns. Both treat position as the problem. The instruction is abstract wherever it sits, and re-stating an abstraction more often does not make it concrete. Chapter 11 covers what position genuinely governs.
+- Extraction that omits a field on some documents and formats it differently on others → few-shot, and specifically not making the field required. Marking a field required removes the omissions by removing the option of silence, which converts a gap into a fabricated value; the exam guide takes this seriously enough to make optional fields a skill in its own right under Task Statement 4.3, on the grounds that a required field pressures the model into inventing something to fill it.<sup>[6]</sup> Chapter 10 owns the schema mechanics. The point for this chapter is that required fields address presence, examples address the transformation, and only one of those is the failure being described.
 
 **Minimal Pairs**
 
@@ -322,9 +362,10 @@ Few-shot owns exactly one failure class: a consistent, recognizable pattern (or 
 ## Key Takeaways
 
 - **Explicit criteria over vague instructions** is the named concept: categorical, measurable conditions (“flag functions exceeding 50 lines”) replace intentional directives (“flag long functions” or “be thorough”). The exam tests this contrast in every prompt engineering question.
-- **Alert fatigue** is the documented mechanism by which false positives destroy tool credibility. High false-positive categories undermine trust in accurate categories, not just in themselves.
+- **Alert fatigue** is this book's name for a documented mechanism, not a term the exam guide uses. The mechanism is what matters and it is stated plainly under Task Statement 4.1: high false-positive categories undermine trust in accurate categories, not just in themselves.
 - **Confidence qualifiers** (“be conservative,” “only report high-confidence findings”) fail to improve precision. They are vague instructions. The exam treats them as wrong answers.
 - **Mitigation sequencing**: temporarily disable high false-positive categories while improving their prompts, rather than running noisy categories while attempting repairs. Restore trust in working categories first.
 - **Severity criteria** require the same explicit specification as rule criteria. Categorical mappings (“rules 3 and 5 are critical”) are auditable and consistent; contextual severity judgments are not.
-- **Few-shot examples**: 2-4 targeted examples is the documented optimal range. Most valuable for tasks with ambiguous boundaries. Examples should show reasoning for ambiguous-case choices, not just input and output. Include examples of acceptable patterns vs genuine issues to teach the distinction rather than just the outcome.
+- **Few-shot examples**: 2 to 4 targeted examples is the count the exam guide names for ambiguous scenarios, and no Anthropic source states a maximum; the general prompting guidance prefers three to five, so three or four sits inside both. Most valuable for tasks with ambiguous boundaries. Examples should show reasoning for ambiguous-case choices, not just input and output. Include examples of acceptable patterns vs genuine issues to teach the distinction rather than just the outcome. The guide's two named ambiguous cases are tool selection under an unclear request and branch-level coverage gaps inside functions that already have tests.
+- **Few-shot owns recognition, explicit criteria owns precision.** One question separates Task Statement 4.1 from 4.2: does the output contain findings that should not be there, or is it missing a case the model never saw? Applying either remedy to the other's failure is the domain's most common engineered wrong answer.
 - **Format constraints and output format as contract**: format specifications belong in the prompt with the same precision as content criteria. When review output feeds automated tooling (PR comment bots, severity-based routing), format consistency is a system requirement, not a stylistic preference; inconsistent output format is a downstream contract violation in CI contexts.

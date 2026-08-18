@@ -1,14 +1,14 @@
 # Claude Certified Architect Foundations
 
-A practitioner reference for the Anthropic CCA-F certification exam: patterns, pitfalls, and production trade-offs across all five exam domains. 12 chapters covering the agentic loop, tool design, configuration hierarchies, prompting discipline, context management, and reliability engineering for Claude Code and the Claude platform.
+A practitioner reference for the Anthropic CCAR-F certification exam: patterns, pitfalls, and production trade-offs across all five exam domains. 12 chapters covering the agentic loop, tool design, configuration hierarchies, prompting discipline, context management, and reliability engineering for Claude Code and the Claude platform.
 
-The editorial position is this: the CCA-F exam tests whether you understand why things work the way they do, not just what the correct configuration looks like. The book treats each exam domain as an engineering design space with trade-offs rather than a feature checklist with correct answers.
+The editorial position is this: the CCAR-F exam tests whether you understand why things work the way they do, not just what the correct configuration looks like. The book treats each exam domain as an engineering design space with trade-offs rather than a feature checklist with correct answers.
 
 [**Video overview of the project**](https://youtu.be/Uu4Y1mq7ZY0)
 
 ## Why this exists
 
-I wanted a structured understanding of Claude Code's architecture and the design decisions underneath it, specifically as preparation for the CCA-F certification exam. The official documentation is comprehensive but distributed across multiple sites and organized by feature rather than by the conceptual relationships between features. The fastest way to build a unified mental model was to assemble the primary sources into a research corpus and have Claude synthesize it under explicit editorial constraints. After reading what came out, I figured other practitioners preparing for the exam might find it useful, and put it here.
+I wanted a structured understanding of Claude Code's architecture and the design decisions underneath it, specifically as preparation for the CCAR-F certification exam. The official documentation is comprehensive but distributed across multiple sites and organized by feature rather than by the conceptual relationships between features. The fastest way to build a unified mental model was to assemble the primary sources into a research corpus and have Claude synthesize it under explicit editorial constraints. After reading what came out, I figured other practitioners preparing for the exam might find it useful, and put it here.
 
 ## How it was made
 
@@ -18,16 +18,15 @@ The research corpus spans:
 
 | Source | Type | Coverage |
 |--------|------|----------|
-| claudecertifications.com | site2vault | Full certification site |
 | docs.anthropic.com | site2vault | Claude documentation |
 | platform.claude.com | site2vault | Platform documentation |
-| Official CCA-F Exam Guide | PDF/markdown | Full exam guide |
+| Official CCAR-F Exam Guide | PDF/markdown | Full exam guide |
 
 The book itself was assembled with Claude using techniques described in [weekend-diy-book](https://github.com/vkorost/weekend-diy-book): style condensation, per-chapter assembly under explicit constraints, dedup, multi-pass review, editorial revision, and final DOCX/PDF/EPUB generation, orchestrated as a multi-phase pipeline with 18 sequential sub-agents.
 
 ## The Five Domains
 
-The book is organized around the five CCA-F exam domains, each mapped to specific chapters:
+The book is organized around the five CCAR-F exam domains, each mapped to specific chapters:
 
 - **Domain 1: Agentic Architecture** (27%, Chs 1-3): the agentic loop as a control-flow primitive, hub-and-spoke topology as the canonical multi-agent pattern, and hooks as lifecycle intervention points. The structural foundation that every other domain builds on.
 - **Domain 2: Tool Design** (18%, Chs 4-5): what makes a tool get selected by the model, the description-over-name principle, MCP as an open protocol versus the built-in toolkit, and the boundaries between server-side and client-side tool execution.
@@ -57,7 +56,7 @@ The raw documentation vaults, the assembly pipeline instructions, and the workin
 
 ## Coverage cutoff
 
-Documentation sources were consulted through Q2 2026. Claude Code, CLAUDE.md semantics, MCP, and the broader Claude platform are under active development. The book documents behavior as of its writing date. Readers should verify time-sensitive claims against current documentation before relying on them for production decisions or exam preparation.
+Documentation sources were consulted through August 2026. Claude Code, CLAUDE.md semantics, MCP, and the broader Claude platform are under active development. The book documents behavior as of its writing date. Readers should verify time-sensitive claims against current documentation before relying on them for production decisions or exam preparation.
 
 ## AI assistance, scope of
 

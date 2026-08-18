@@ -1,63 +1,71 @@
 # Six Scenario Reference
 
-The six exam scenarios are not isolated vignettes. They are recurring architectural contexts that appear across multiple questions and multiple domains. Each one tests a different cluster of trade-offs. Knowing the scenarios before you sit the exam means you are not spending cognitive load on “what kind of system is this” when the question is actually “which configuration choice is correct here.”
+Six scenarios exist. Four of them are served on any given sitting, six items each, so a form does not cover all six and you cannot predict which four you will get. Prepare for all of them.
+
+A scenario is a recurring architectural context rather than a self-contained vignette. Each one frames several items across more than one domain, which is why the same underlying content can appear in different scenario clothing between sittings: the tool routing and workflow enforcement material that sits inside a support block on one form can appear inside an extraction block on another. Study to the domain objectives, not to the scenario skins.
+
+**What the exam guide actually provides for each scenario is a short framing paragraph and a list of its primary domains.** That is the whole of it. There are no published walkthroughs, no worked examples, and no per-scenario fact lists. Anything of that kind circulating elsewhere is third-party commentary and does not carry the guide's authority.
+
+Below, the system description and the primary domains are the guide's. The chapter pointers are this book's mapping from those domains onto its own contents.
 
 ---
 
-## Scenario 1: Customer Support Agent
+## Scenario 1: Customer Support Resolution Agent
 
-**Primary domains:** Domain 1 (Agentic Architecture), Domain 5 (Context Management and Reliability)
+**Primary domains:** 1 (Agentic Architecture and Orchestration), 2 (Tool Design and MCP Integration), 5 (Context Management and Reliability)
 
-**What it tests:** Multi-tool orchestration, escalation logic, and the decision boundary between autonomous action and human handoff. This scenario focuses on when an agent should stop and route rather than continue acting. Tool selection under ambiguous user intent. Managing session state across a support conversation.
+**The system:** a support resolution agent built on the Agent SDK, handling high-ambiguity work such as returns, billing disputes and account problems, reaching backend systems through custom MCP tools for customer lookup, order lookup, refunds and human escalation. The stated target is a high first-contact resolution rate combined with knowing when to escalate.
 
-**Chapters:** 1, 11, 12
+**Where its trade-offs live in this book:** loop termination and permission modes (Chapter 1), deterministic enforcement of business thresholds before a tool runs (Chapter 3), tool boundaries and routing between overlapping lookups (Chapters 4 and 5), preserving transactional facts across a long conversation (Chapter 11), and valid escalation triggers, structured handoff and the empty-result-versus-failure distinction (Chapter 12).
 
 ---
 
-## Scenario 2: Code Review Pipeline
+## Scenario 2: Code Generation with Claude Code
 
-**Primary domains:** Domain 3 (Configuration and Customization), Domain 1 (Agentic Architecture)
+**Primary domains:** 3 (Claude Code Configuration and Workflows), 5 (Context Management and Reliability)
 
-**What it tests:** CI/CD integration patterns, session isolation using the –bare flag and -p flag, and the risks of persistent state across review sessions. How CLAUDE.md configuration interacts with automated pipeline runs. Preventing context bleed between independent review jobs.
+**The system:** Claude Code used across a team for generation, refactoring, debugging and documentation, integrated into the development workflow with custom slash commands and CLAUDE.md configuration, including the decision of when to use plan mode rather than direct execution.
 
-**Chapters:** 3, 6, 8
+**Where its trade-offs live in this book:** the configuration hierarchy and which layer owns which instruction (Chapter 6), commands, skills, plan mode and iterative refinement (Chapter 7), session isolation and reproducibility (Chapter 8), and context discipline across long sessions (Chapter 11).
 
 ---
 
 ## Scenario 3: Multi-Agent Research System
 
-**Primary domains:** Domain 1 (Agentic Architecture), Domain 5 (Context Management and Reliability)
+**Primary domains:** 1 (Agentic Architecture and Orchestration), 2 (Tool Design and MCP Integration), 5 (Context Management and Reliability)
 
-**What it tests:** Hub-and-spoke coordination, coordinator-to-subagent delegation, and the provenance problem: knowing which subagent produced which output and whether that output can be trusted. Handling subagent failure without corrupting the coordinator’s result. Context partitioning across a multi-agent graph.
+**The system:** a coordinator delegating to specialized subagents, one searching the web, one analyzing documents, one synthesizing findings and one generating reports, producing comprehensive cited reports.
 
-**Chapters:** 2, 11, 12
-
----
-
-## Scenario 4: Document Processing Pipeline
-
-**Primary domains:** Domain 4 (Prompting and Output), Domain 2 (Tool Design)
-
-**What it tests:** Structured output contracts using tool_use as a JSON schema enforcement mechanism. The validation loop pattern: generating output, validating against schema, retrying on failure. Designing tool descriptions that produce consistent extraction results across varied document formats.
-
-**Chapters:** 4, 9, 10
+**Where its trade-offs live in this book:** coordinator topology, context passing, decomposition and session state (Chapter 2), distributing tools across specialized agents (Chapter 4), context isolation as a budget mechanism (Chapter 11), and error propagation and provenance through synthesis (Chapter 12). The requirement that reports be cited is the provenance requirement stated as a product goal.
 
 ---
 
-## Scenario 5: Enterprise Deployment
+## Scenario 4: Developer Productivity with Claude
 
-**Primary domains:** Domain 3 (Configuration and Customization), Domain 2 (Tool Design)
+**Primary domains:** 2 (Tool Design and MCP Integration), 3 (Claude Code Configuration and Workflows), 1 (Agentic Architecture and Orchestration)
 
-**What it tests:** The three-layer CLAUDE.md hierarchy: global, project, and folder-level configuration. Permission inheritance and override semantics. How slash commands and skills interact with organizational policy. The permissionMode settings and when bypassPermissions is appropriate versus dangerous. MCP server scoping in an enterprise context.
+**The system:** productivity tooling on the Agent SDK aimed at engineers meeting a codebase they do not know. It navigates unfamiliar and legacy code, produces scaffolding, and takes over repetitive chores, working through the built-in tools with MCP servers attached.
 
-**Chapters:** 5, 6, 7
+**Where its trade-offs live in this book:** built-in tool selection and the reflex to reach for Bash when a purpose-built tool exists, plus MCP configuration and scoping (Chapter 5), tool set size and distribution (Chapter 4), configuration placement and path-scoped rules (Chapters 6 and 7), delegation for exploration (Chapter 2), and context management in large codebase exploration (Chapter 11).
 
 ---
 
-## Scenario 6: Monitoring Dashboard Agent
+## Scenario 5: Claude Code for Continuous Integration
 
-**Primary domains:** Domain 5 (Context Management and Reliability), Domain 2 (Tool Design)
+**Primary domains:** 3 (Claude Code Configuration and Workflows), 4 (Prompt Engineering and Structured Output)
 
-**What it tests:** Context window discipline in a long-running agent that continuously ingests telemetry. The lost-in-the-middle effect and its practical consequences for alert detection. Tool selection strategy when many tools are available and the agent must not hallucinate tool calls. Knowing when to summarize, when to truncate, and when to escalate because the context is too degraded to act reliably.
+**The system:** Claude Code inside a CI/CD pipeline running automated reviews, generating test cases and giving feedback on pull requests, with the stated design problem being feedback that is actionable and low in false positives.
 
-**Chapters:** 4, 11, 12
+**Where its trade-offs live in this book:** non-interactive invocation, reproducibility, review-session isolation, multi-pass review and cost control (Chapter 8), explicit criteria and the false-positive problem (Chapter 9), and machine-parseable output for downstream automation (Chapter 10).
+
+Note that this scenario's second domain is prompt engineering rather than tool design. The false-positive problem is the prompting half of the scenario, and it is where the items go when they are not about pipeline configuration.
+
+---
+
+## Scenario 6: Structured Data Extraction
+
+**Primary domains:** 4 (Prompt Engineering and Structured Output), 5 (Context Management and Reliability)
+
+**The system:** an extraction system pulling information out of unstructured documents, validating output against JSON schemas, maintaining high accuracy, handling edge cases gracefully and integrating with downstream systems.
+
+**Where its trade-offs live in this book:** schema enforcement, the validation loop, retry-versus-escalate triage and self-correction fields (Chapter 10), explicit criteria and few-shot for ambiguous cases (Chapter 9), and confidence calibration, sampling, per-segment accuracy and provenance (Chapter 12). Edge cases handled gracefully is the empty-result-versus-failure distinction wearing different clothes.

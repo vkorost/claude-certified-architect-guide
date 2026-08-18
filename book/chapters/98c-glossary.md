@@ -12,7 +12,7 @@ Terms are listed alphabetically. Each definition covers the concept as it applie
 
 **context window** The total token budget available in a single Claude API call, encompassing the system prompt, conversation history, tool definitions, tool results, and the current response being generated.
 
-**DataWithProvenance** An architectural *pattern* in which each piece of data produced by a subagent is wrapped with metadata identifying its source, the subagent that produced it, and the conditions under which it was generated. Prevents silent data corruption in multi-agent pipelines.
+**DataWithProvenance** *This book's name for a structure, not a term from the exam material.* A record in which each value produced by a subagent is paired with metadata identifying its source, the subagent that produced it, the manner in which it was obtained, and when. It is one way to satisfy the claim-source mapping requirement, which is what the exam guide actually specifies. See Chapter 12.
 
 **end_turn** A stop_reason value indicating that Claude has completed its response and does not require further tool execution. The loop terminates normally.
 

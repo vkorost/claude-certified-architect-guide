@@ -27,9 +27,9 @@ while True:
         execute_and_continue()
 ```
 
-The anti-pattern is checking assistant text content to determine loop termination.<sup>[1]</sup> It feels reasonable until it isn’t: the model rephrases its completion signal, your substring match misses it, and the loop spins indefinitely. Or the model produces “I’ve completed the task as requested” in a tool-call response that needs further processing, and your matcher fires early.
+Treating assistant text as the completion indicator is a named anti-pattern, listed in the exam guide beside parsing natural language signals for termination and using an arbitrary iteration cap as the main stopping mechanism.<sup>[1]</sup> It feels reasonable until it isn’t: the model rephrases its completion signal, your substring match misses it, and the loop spins indefinitely. Or the model produces “I’ve completed the task as requested” in a tool-call response that needs further processing, and your matcher fires early.
 
-The correct pattern reads a typed field. **stop_reason** is part of every successful Messages API response.<sup>[2]</sup> It does not appear in the prose. It is structural. The model does not embed completion status in language. The API emits it as a discrete value. This distinction is the foundation of every agentic architecture decision discussed in this book, and it is the first thing the exam tests.<sup>[1]</sup>
+The correct pattern reads a typed field. **stop_reason** is part of every successful Messages API response.<sup>[2]</sup> It does not appear in the prose. It is structural. The model does not embed completion status in language. The API emits it as a discrete value. This distinction underlies every agentic architecture decision discussed in this book. It is also where the blueprint opens. Domain 1 is the heaviest of the five domains, at 27 percent of scored items,<sup>[3]</sup> and its first task statement is the design of agentic loops, whose opening knowledge bullet is the inspection of stop_reason to tell "tool_use" from "end_turn".<sup>[1]</sup>
 
 Name this: **stop_reason-driven termination**. The orchestrator loop continues when stop_reason is "**tool_use**" and exits when **stop_reason** is anything else. The exit branch may require different handling depending on which value arrived. But the fundamental control structure is keyed on that field, not on parsed text.
 
@@ -37,7 +37,7 @@ Name this: **stop_reason-driven termination**. The orchestrator loop continues w
 
 ## The Loop at a Glance
 
-Before the values, the shape. Every agent session follows the same cycle.<sup>[3]</sup>
+Before the values, the shape. Every agent session follows the same cycle.<sup>[4]</sup>
 
 1. **Receive prompt.** Claude receives the prompt, system prompt, tool definitions, and conversation history.
 2. **Evaluate and respond.** Claude evaluates the current state and determines how to proceed. It may respond with text, request one or more tool calls, or both.
@@ -45,9 +45,15 @@ Before the values, the shape. Every agent session follows the same cycle.<sup>[3
 4. **Repeat.** Steps 2 and 3 cycle. Each full cycle is one turn. Claude continues until it produces a response with no tool calls.
 5. **Return result.** The loop ends. The SDK or your code delivers the final output.
 
-A turn is one complete round trip: Claude produces output that includes tool calls, those tools execute, results return to Claude. Turns continue until Claude produces output with no tool calls, at which point the loop ends.<sup>[3]</sup>
+A turn is one complete round trip: Claude produces output that includes tool calls, those tools execute, results return to Claude. Turns continue until Claude produces output with no tool calls, at which point the loop ends.<sup>[4]</sup>
 
-The SDK handles this cycle automatically. A complex task (“refactor the authentication module and update the tests”) can chain dozens of tool calls across many turns, with the model adjusting its approach based on each result, without your orchestration code doing anything between turns.<sup>[3]</sup> This automation is the value. The loop manages itself. What you configure is its boundaries and permissions.
+The SDK handles this cycle automatically. A complex task (“refactor the authentication module and update the tests”) can chain dozens of tool calls across many turns, with the model adjusting its approach based on each result, without your orchestration code doing anything between turns.<sup>[4]</sup> This automation is the value. The loop manages itself. What you configure is its boundaries and permissions.
+
+One property of that cycle deserves naming, because it is the property most often mistaken for something simpler. What the model does on the next turn is determined by what came back on the last one. The exam guide states this as a distinction: model-driven decision making, where Claude reasons about which tool to call next from the context in front of it, set against pre-configured decision trees and fixed tool sequences.<sup>[1]</sup>
+
+The test that separates them is mechanical. Change the content of a tool result and watch whether the next call changes. A decision tree branches on conditions its author wrote down in advance, so it walks the same path whenever those conditions hold, whatever the payload happens to say. A fixed sequence does not branch at all. Model-driven selection has no path written down anywhere. The result is appended to the conversation, the model reads the accumulated history, and the next tool call falls out of that reading.<sup>[1]</sup>
+
+Which is why the appending matters as much as the reasoning. A result that never enters the conversation cannot influence anything. An architecture that reduces tool output to a status flag before handing it back has discarded the material the model was supposed to reason over, and what remains is a decision tree with a language model bolted onto the front of it.
 
 ---
 
@@ -63,7 +69,7 @@ One edge case: sometimes the model returns an empty response with stop_reason: "
 
 **"tool_use"**
 
-Claude is requesting one or more tool calls and expects your code to execute them. The response contains tool_use blocks with the tool name and a JSON object of arguments. Your application extracts those arguments, runs the operation, and sends the output back in a tool_result block on the next request.<sup>[4]</sup> The loop continues.
+Claude is requesting one or more tool calls and expects your code to execute them. The response contains tool_use blocks with the tool name and a JSON object of arguments. Your application extracts those arguments, runs the operation, and sends the output back in a tool_result block on the next request.<sup>[5]</sup> The loop continues.
 
 This value drives the core loop continuation logic. While stop_reason == "tool_use", execute tools and continue. On any other value, exit (or handle the specific condition).<sup>[2]</sup>
 
@@ -77,7 +83,7 @@ Claude encountered one of your custom stop sequences. The response is complete u
 
 **"pause_turn"**
 
-Returned when the server-side sampling loop reaches its iteration limit while executing server tools like web search or web fetch. The default limit is 10 iterations per request.<sup>[2]</sup> The work is not finished. Re-send the conversation, including the paused response, to let Claude continue where it left off. Any agent loop using server tools should handle this value.<sup>[4]</sup>
+Returned when the server-side sampling loop reaches its iteration limit while executing server tools like web search or web fetch. The default limit is 10 iterations per request.<sup>[2]</sup> The work is not finished. Re-send the conversation, including the paused response, to let Claude continue where it left off. Any agent loop using server tools should handle this value.<sup>[5]</sup>
 
 **"refusal"**
 
@@ -128,7 +134,7 @@ The TypeScript SDK exposes termination state through ResultMessage.subtype, whic
 
 ## ResultMessage and SDK Termination State
 
-When using the Agent SDK, the loop’s termination state arrives in a **ResultMessage**, the final message emitted when the loop ends. The **subtype** field is the primary way to check termination state.<sup>[3]</sup>
+When using the Agent SDK, the loop’s termination state arrives in a **ResultMessage**, the final message emitted when the loop ends. The **subtype** field is the primary way to check termination state.<sup>[4]</sup>
 
 **Five** subtypes:
 
@@ -140,9 +146,9 @@ When using the Agent SDK, the loop’s termination state arrives in a **ResultMe
 | "error_during_execution" | An error interrupted the loop (API failure, cancelled request) | No |
 | "error_max_structured_output_retries" | Structured output validation failed after configured retry limit | No |
 
-The result field (final text output) is only present on the "success" subtype. Always check the subtype before reading it.<sup>[3]</sup> All result subtypes carry **total_cost_usd, usage, num_turns, and session_id** so cost tracking and session resumption remain available even after an error.
+The result field (final text output) is only present on the "success" subtype. Always check the subtype before reading it.<sup>[4]</sup> All result subtypes carry **total_cost_usd, usage, num_turns, and session_id** so cost tracking and session resumption remain available even after an error.
 
-A small note the docs flag explicitly: trailing system events such as **prompt_suggestion** can arrive after the ResultMessage. Iterate the stream to completion rather than breaking on the result.<sup>[3]</sup>
+A small note the docs flag explicitly: trailing system events such as **prompt_suggestion** can arrive after the ResultMessage. Iterate the stream to completion rather than breaking on the result.<sup>[4]</sup>
 
 The ResultMessage also includes a **stop_reason** field (*str | None in Python, string | null in TypeScript*) indicating why the model stopped generating on its final turn. On error subtypes, stop_reason carries the value from the last assistant response before the loop ended. The two fields serve complementary purposes: subtype tells you whether the SDK loop succeeded or failed; stop_reason tells you what the model was doing when it ended.
 
@@ -179,37 +185,49 @@ The anti-pattern:
 
 Mixing text into the same block causes Claude to interpret the assistant turn as already complete, producing the empty end_turn response described earlier.<sup>[2]</sup> The SDK handles this correctly when you use its built-in tool execution. If you are driving the Messages API loop manually, this rule is a necessary discipline.
 
+Two further properties of that block are load-bearing, and neither one is about JSON validity. The first is the role. The result goes back in a user-role message. It is not an assistant message, and it is not a note the orchestrator writes on the model’s behalf. The second is the correlation. Every tool_result carries the identifier of the request it answers, its tool_use_id, and that is how a turn containing several parallel calls gets sorted out on the way back.<sup>[5]</sup>
+
+Correctness here is a question of role and content type rather than of schema strictness. A block can validate cleanly and still be wrong, because it arrived in the wrong role or without the id that ties it to a request. The remaining failure in this family is compression: substituting a summary of the result for the result. The full result is appended to the complete conversation history, and the model reasons over that history.<sup>[1]</sup> Summarising it at the boundary is the status-flag mistake again, made one layer lower down.
+
 ---
 
 ## Loop Control: Turns, Budget, and Effort
 
-Three options govern how long a loop runs and how deeply it reasons. All three are fields on the options object passed to the SDK *query()* function.<sup>[3]</sup>
+Three options govern how long a loop runs and how deeply it reasons. All three are fields on the options object passed to the SDK *query()* function.<sup>[4]</sup>
 
 ### max_turns and max_budget_usd
 
-*max_turns (Python: max_turns; TypeScript: maxTurns)* caps the number of tool-use round trips. It counts tool-use turns only. Without a limit, the loop runs until Claude finishes on its own, which is fine for well-scoped tasks but can run long on open-ended prompts.<sup>[3]</sup> When the limit is reached, the SDK emits a ResultMessage with subtype *"error_max_turns".*
+*max_turns (Python: max_turns; TypeScript: maxTurns)* caps the number of tool-use round trips. It counts tool-use turns only. Without a limit, the loop runs until Claude finishes on its own, which is fine for well-scoped tasks but can run long on open-ended prompts.<sup>[4]</sup> When the limit is reached, the SDK emits a ResultMessage with subtype *"error_max_turns".*
 
-*max_budget_usd (Python: max_budget_usd; TypeScript: maxBudgetUsd) *caps accumulated cost. When the spend threshold is reached, the loop stops and emits *"error_max_budget_usd".* Setting a budget is a practical default for production agents.<sup>[3]</sup>
+*max_budget_usd (Python: max_budget_usd; TypeScript: maxBudgetUsd) *caps accumulated cost. When the spend threshold is reached, the loop stops and emits *"error_max_budget_usd".* Setting a budget is a practical default for production agents.<sup>[4]</sup>
 
-Here is the anti-pattern this pair corrects: using an iteration cap as the primary stopping mechanism. The reasoning is superficially similar to *max_turns,* but the intent is different. An iteration cap substitutes for proper stop_reason-driven control. The agent loop should exit because the model signals completion via *stop_reason,* not because your orchestrator counted to ten. *max_turns* is a safety net, not the primary exit condition.<sup>[1]</sup>
+Here is the anti-pattern this pair corrects: using an iteration cap as the primary stopping mechanism. The reasoning is superficially similar to *max_turns,* but the intent is different. An iteration cap substitutes for proper stop_reason-driven control. The agent loop should exit because the model signals completion via *stop_reason,* not because your orchestrator counted to ten. Note what a cap actually produces when it fires: an error subtype rather than a result.<sup>[4]</sup> That is the shape of a boundary condition, not of a completion signal. *max_turns* is a safety net, not the primary exit condition, and the exam guide names arbitrary iteration caps used as the primary stopping mechanism among its anti-patterns.<sup>[1]</sup>
 
 The exam tests this distinction.
 
+There is a second question hiding behind the same pair of options, and it is the one that separates a workable production loop from a fragile one. Suppose the work is genuinely open-ended: a task whose tool consumption cannot be predicted from the prompt, running under a cap that has to exist anyway. Sooner or later the cap fires mid-task, and the loop ends on *error_max_turns* with the job half done.
+
+The reflex is to make the ending graceful. Add something that detects the limit, closes the session cleanly, and hands the remainder to a person. That converts an abrupt stop into a tidy one without moving the work any closer to finished. The cap was never the problem. Stopping at the cap was the intended behavior.
+
+The fix belongs in the orchestration layer, above the loop rather than inside it. The error subtype is the signal that the task did not resolve, and it arrives with everything needed to continue. Every result subtype carries *session_id, num_turns, usage,* and *total_cost_usd,* and resuming a session restores the full context of the previous turns: the files that were read, the analysis that was performed, the actions that were taken.<sup>[4]</sup> So the orchestrator checks whether the task actually resolved, and if it did not, it invokes the agent again against that accumulated context with a fresh allowance. Workflows of arbitrary length complete this way, in bounded segments, each segment held to a cap that the layer above it is free to extend.
+
+Escalating to a human stays available, and it remains the right answer when the work needs judgment the agent does not have. It is the wrong tool for the case where the work simply needs more turns.
+
 ### The effort Option
 
-Effort controls how much reasoning Claude applies per turn. Lower effort levels use fewer tokens per turn and reduce cost.<sup>[3]</sup>
+Effort controls how much reasoning Claude applies per turn. Lower effort levels use fewer tokens per turn and reduce cost.<sup>[4]</sup>
 
 | Level | Behavior | Good for |
 | --- | --- | --- |
 | "low" | Minimal reasoning, fast responses | File lookups, listing directories |
 | "medium" | Balanced reasoning | Routine edits, standard tasks |
 | "high" | Thorough analysis | Refactors, debugging |
-| "xhigh" | Extended reasoning depth | Coding and agentic tasks; recommended on Opus 4.7 |
+| "xhigh" | Extended reasoning depth | Coding and agentic tasks; recommended on the newest frontier models |
 | "max" | Maximum reasoning depth | Multi-step problems requiring deep analysis |
 
-The Python SDK leaves effort unset when not specified, deferring to the model’s default behavior. The TypeScript SDK defaults to "high".<sup>[3]</sup>
+When effort is not specified, both SDKs leave the parameter unset and defer to the model’s default behavior. Not every model supports the parameter.<sup>[6]</sup>
 
-Extended thinking is a separate feature from effort. They are independent: effort: "low" with extended thinking enabled is a valid configuration, as is effort: "max" without it.<sup>[3]</sup>
+Extended thinking is a separate feature from effort. They are independent: effort: "low" with extended thinking enabled is a valid configuration, as is effort: "max" without it.<sup>[4]</sup>
 
 Effort can be set at the session level in query() options, or per subagent via the effort field on AgentDefinition to override the session level. The use of subagents as a composition pattern is covered in Chapter 2 (Coordinator plus subagents).
 
@@ -217,27 +235,35 @@ Effort can be set at the session level in query() options, or per subagent via t
 
 ## Permission Mode
 
-The permissionMode option (Python: permission_mode; TypeScript: permissionMode) controls whether the agent asks for approval before using tools that are not covered by explicit allow or deny rules.<sup>[3]</sup>
+The permissionMode option (Python: permission_mode; TypeScript: permissionMode) controls whether the agent asks for approval before using tools that are not covered by explicit allow or deny rules.<sup>[4]</sup>
 
-Four modes:
+Six modes.<sup>[6]</sup> Four of them cover the common cases and two exist for headless operation.
 
 **"default"**
 
-Tools not covered by allow rules trigger the approval callback. No callback means deny. This is the **interactive mode: a human-in-the-loop configuration** **where the agent surfaces ambiguous actions for review.**<sup>[3]</sup>
+Tools not covered by allow rules trigger the approval callback. No callback means deny. This is the **interactive mode: a human-in-the-loop configuration** **where the agent surfaces ambiguous actions for review.**<sup>[4]</sup>
 
 **"acceptEdits"**
 
-**Auto-approves file** **edits and common filesystem commands** (*mkdir, touch, mv, cp,* and similar). Other Bash commands follow default rules. The practical choice for autonomous agents on a development machine where file modification is expected but arbitrary shell execution is not.<sup>[3]</sup>
+**Auto-approves file** **edits and common filesystem commands** (*mkdir, touch, mv, cp,* and similar). Other Bash commands follow default rules. The practical choice for autonomous agents on a development machine where file modification is expected but arbitrary shell execution is not.<sup>[4]</sup>
 
 **"plan"**
 
-**Read-only tools run.** Claude explores and produces a plan without editing source files. The agent can read, search, and analyze, but write operations are blocked. Use this when you want Claude’s analysis and recommendations before committing to changes. This value is applied in plan mode workflows covered in Chapter 7 (Explicit-intent execution modes).
+**Claude explores and produces a plan without editing source files.** File edits are never auto-approved in this mode; they route through the approval callback instead. Use this when you want Claude’s analysis and recommendations before committing to changes.<sup>[6]</sup> This value is applied in plan mode workflows covered in Chapter 7 (Explicit-intent execution modes).
+
+**"dontAsk"**
+
+Never prompts and never falls back to a callback. Tools pre-approved by permission rules run; everything else is denied. This is the mode for a headless agent that needs a fixed, explicit tool surface and prefers a hard deny to the ambiguity of a missing approval callback.<sup>[6]</sup>
+
+**"auto"**
+
+Uses a model classifier to approve or deny the prompts that would otherwise reach a human. Intended for autonomous agents that still want a guardrail on tool use. The availability conditions are documented separately from the mode table.<sup>[6]</sup>
 
 **"bypassPermissions"**
 
-Never prompts. **All tool calls execute without approval regardless of other settings.** Reserve this for CI environments, containers, or other isolated environments where no human is available for approval.<sup>[3]</sup> This value is the **recommended configuration for CI/CD integration**, covered in Chapter 8 (Review-session isolation).
+Runs all allowed tools without asking. The exceptions are narrow and worth knowing: tools matched by an explicit ask rule, connector tools an organization has set to ask, and tools that require user interaction still prompt.<sup>[6]</sup> Reserve this for containers, virtual machines, and other isolated environments where the agent's actions cannot reach anything you care about.<sup>[4]</sup> A pipeline that needs a fixed, explicit tool surface rather than an unguarded one is better served by *dontAsk*, which never prompts and denies whatever the permission rules have not already allowed. Chapter 8 works through the choice for CI.
 
-Note that *permissionMode*: "acceptEdits" does not auto-approve MCP tools; permissionMode: "bypassPermissions" does, because it disables all safety prompts.<sup>[3]</sup> Chapter 5 covers the specific implication for MCP tool permissions.
+Note that *permissionMode*: "acceptEdits" does not auto-approve MCP tools. "bypassPermissions" comes closest and still stops short of universal: it runs what the permission rules allow without asking, and leaves the ask-rule and user-interaction exceptions standing.<sup>[6]</sup> Chapter 5 covers the specific implication for MCP tool permissions.
 
 ---
 
@@ -329,7 +355,7 @@ if "I'm done" in text.lower():
     break
 ```
 
-The model does not guarantee consistent phrasing. Any phrase you match, Claude will eventually rephrase. Worse: Claude might produce completion-sounding language mid-task, in a response that also contains tool calls. The structural stop_reason field is the reliable signal. It is a typed enum value, not a substring in prose.<sup>[1,2]</sup>
+The model does not guarantee consistent phrasing. Any phrase you match, Claude will eventually rephrase. Worse: Claude might produce completion-sounding language mid-task, in a response that also contains tool calls. The structural stop_reason field is the reliable signal. It is a field with a fixed, documented set of values, present on every successful response, not a substring in prose.<sup>[2]</sup>
 
 ### Anti-Pattern 2: Arbitrary Iteration Caps as Primary Control
 
@@ -340,9 +366,11 @@ for i in range(max_iterations):
     # process...
 ```
 
-Iteration caps are reasonable safety rails. They are not loop termination logic. A cap that fires before the model signals completion interrupts a working session. A cap set high enough to never interfere provides no safety value. The correct pattern uses stop_reason for primary control and max_turns (or max_budget_usd) as boundary conditions: the loop exits normally on "end_turn" and receives a ResultMessage with "error_max_turns" only if the task ran unexpectedly long.<sup>[1,3]</sup>
+Iteration caps are reasonable safety rails. They are not loop termination logic. A cap that fires before the model signals completion interrupts a working session. A cap set high enough to never interfere provides no safety value. The correct pattern uses stop_reason for primary control and max_turns (or max_budget_usd) as boundary conditions: the loop exits normally on "end_turn" and receives a ResultMessage with "error_max_turns" only if the task ran unexpectedly long.<sup>[2,4]</sup>
 
 Both anti-patterns appear as exam distractors. They look reasonable to candidates with incomplete knowledge of the API. Knowing why they fail is the knowledge the exam is measuring.
+
+The family is larger than its two named members, and the shape is worth recognising in preference to memorising the instances. stop_reason is a structured field the API sets when generation ends.<sup>[2]</sup> Everything else a loop might consult is a proxy: a phrase in the output, a confidence score the model was asked to emit, a running token count, a turn counter. Proxies correlate with completion until they do not. A model can sound finished and still have work queued behind the sentence. A token count climbs for reasons that have nothing to do with progress. A turn counter measures how many times the loop ran, which is a different question from whether the task is done. The field reports the state. The proxies estimate it, and an estimate is not a termination condition.
 
 ---
 
@@ -350,7 +378,7 @@ Both anti-patterns appear as exam distractors. They look reasonable to candidate
 
 The loop is not Claude’s loop. The model generates responses; the orchestrator runs the loop.
 
-This is a meaningful distinction for system design. Claude does not execute tools. It emits a structured request describing what tool to call with what arguments. Your application (or the SDK on your behalf) executes the tool and returns the result. Claude never sees your implementation; it only sees the schema you provided and the result you returned.<sup>[4]</sup>
+This is a meaningful distinction for system design. Claude does not execute tools. It emits a structured request describing what tool to call with what arguments. Your application (or the SDK on your behalf) executes the tool and returns the result. Claude never sees your implementation; it only sees the schema you provided and the result you returned.<sup>[5]</sup>
 
 That execution model means the **orchestrator owns the termination logic.** Claude cannot break out of your loop. It cannot decide the session is over in any way that bypasses your code. The stop_reason field is Claude’s communication channel for expressing completion intent. Your code reads it and acts.
 
@@ -364,8 +392,8 @@ Everything else in this book builds on that separation: hooks that intercept too
 
 - **stop_reason-driven termination** is the fundamental control pattern: continue on* "tool_use", exit on "end_turn", handle "max_tokens", "pause_turn", "refusal", "stop_sequence", and "model_context_window_exceeded"* as distinct conditions.
 - The **ResultMessage.subtype** field in the Agent SDK provides termination state at the session level: "success" carries the final text output; the four error subtypes do not include a result field.
-- **tool_result** blocks belong in isolated user-role messages; mixing text content into the same block causes empty end_turn responses.
-- **max_turns** and **max_budget_usd** are safety bounds, not primary loop control; using an iteration cap as the main exit mechanism is a named anti-pattern.
-- The **effort** option controls reasoning depth per turn across five levels; the **TypeScript SDK defaults to "*high*", the Python SDK leaves it *unset*.**
-- The four permissionMode values ***("default", "acceptEdits", "plan", "bypassPermissions"***) map to four distinct trust contexts: interactive human approval, autonomous dev machine operation, read-only planning, and CI/container execution.
-- **The model does not execute tools and cannot break out of the orchestrator’s loop; stop_reason is the only structural channel for signaling completion intent.**
+- **tool_result** blocks belong in isolated user-role messages, each one keyed by **tool_use_id** to the request it answers and appended in full to the conversation history rather than summarised; mixing text content into the same block causes empty end_turn responses.
+- **max_turns** and **max_budget_usd** are safety bounds, not primary loop control; using an iteration cap as the main exit mechanism is a named anti-pattern, and a cap that fires mid-task is a signal for the orchestrator to re-invoke with the accumulated context rather than to terminate and hand off.
+- The **effort** option controls reasoning depth per turn across five levels; when it is left unspecified, **both SDKs leave the parameter unset** and defer to the model’s default.
+- The **permissionMode** values ***("default", "acceptEdits", "plan", "dontAsk", "auto", "bypassPermissions"***) map to distinct trust contexts: interactive human approval, autonomous dev machine operation, read-only planning, headless fixed-surface operation, classifier-mediated approval, and CI/container execution.
+- **The model does not execute tools and cannot break out of the orchestrator’s loop; stop_reason is the only structural channel for signaling completion intent, and the content of each returned tool result, not a pre-planned sequence, is what selects the next action.**
