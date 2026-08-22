@@ -1,7 +1,5 @@
 # How to Read This Book
 
----
-
 ## Structure Follows Domain Weighting
 
 The CCAR-F exam has five domains. They are not equally weighted. Agentic Architecture is 27% of the exam. That means three chapters cover it. Context Management and Reliability is 15%. That means two chapters cover it. The chapter order reflects those priorities, not a logical tour of the API.
@@ -14,15 +12,11 @@ The domain-to-chapter mapping:
 - Domain 4, Prompting and Output (20%): Chapters 9, 10
 - Domain 5, Context Management and Reliability (15%): Chapters 11, 12
 
----
-
 ## Each Chapter Is Self-Contained
 
 Each chapter opens with an executive summary. Read the summary, decide if you need the detail, proceed accordingly. The summaries are not teasers. They are compressed statements of the chapter’s architectural claims. A reader who only reads the summaries will have a weaker mental model but will not have been misled.
 
 Chapters are designed to stand alone as reference material after a first linear read. Cross-references appear where a concept depends on something introduced elsewhere, but the chapter does not require you to have the other one open.
-
----
 
 ## Navigation Aids
 
@@ -32,13 +26,9 @@ Most chapters include sample questions. These are not full exam simulations. The
 
 Endnotes are collected in Appendix G, not inline. The text flags them by number. If you are reading for exam prep, you can ignore the endnotes entirely on first pass. If you want the source reference for a specific claim, Appendix G has it.
 
----
-
 ## Code Examples
 
 Code examples appear in Python and TypeScript. Both languages are represented across the chapters, roughly alternating. The examples are architectural illustrations, not production-ready snippets. They prioritize clarity about the pattern over completeness of error handling.
-
----
 
 ## Suggested Reading Order
 
@@ -47,3 +37,5 @@ Read it linearly the first time. The concepts compound. A coordinator pattern in
 After the first pass, use it as a reference. The executive summaries and Key Takeaways support that mode. So does the coverage map in the back matter, which maps exam task statements to specific chapters.
 
 The glossary is at the back. If a term appears in the text and you are not sure of its precise meaning, that is where to look first.
+
+One back matter section is worth reading before the second pass rather than after it. The enforcement ladder card collects a decision that recurs in every domain, ranking the mechanisms that can hold a rule from the strongest to the weakest and pointing at the chapter that explains each. The chapters teach the mechanisms one at a time, which is the right way to learn them and the wrong way to compare them. The card is the comparison.

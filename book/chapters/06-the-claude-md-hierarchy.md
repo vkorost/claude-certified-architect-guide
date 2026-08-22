@@ -2,8 +2,6 @@
 
 **Summary:** *Claude Code’s configuration system is a four-scope hierarchy (managed policy, user, project, local) that resolves through concatenation, not override. Broader scopes are read first and more specific ones last, but nothing is erased and nothing takes precedence. The .claude/rules/ directory and @path/to/import syntax provide modular organization within that hierarchy. Path-scoped rules extend the system by triggering on file type rather than directory, giving teams fine-grained control without fragmented configs. The exam’s most reliable trap is instructions living in the wrong scope: user-level configuration is personal and invisible to teammates.*
 
----
-
 ## The Diagnostic Question
 
 Picture it: a new engineer joins the team. They fire up Claude Code on their first real task. Claude generates code that ignores the team’s established patterns. Wrong naming conventions. Wrong error handling style. 
@@ -23,8 +21,6 @@ The name is slightly imprecise, and the imprecision is worth pinning down. The e
 The point is that these layers do not override each other. They concatenate. Instructions from a broader scope do not disappear when a narrower scope adds instructions. Everything loads. Everything compounds.
 
 Knowing what each layer carries, and what makes it load, is an exam competency.
-
----
 
 ## The Four Scopes
 
@@ -54,8 +50,6 @@ The table structure is, listed in load order from broadest scope to most specifi
 | Local | ./CLAUDE.local.md | Nobody | No (gitignored) |
 
 The exam tests whether you can correctly assign instruction types to scopes. Personal preferences do not belong in project config. Team standards do not belong in user config. The new engineer scenario is the canonical illustration: team standards in the wrong scope means teammates start fresh, without context.
-
----
 
 ## How the Files Load
 
@@ -87,8 +81,6 @@ It is worth saying the negative form out loud, because it is where candidates lo
 
 An important corollary: after /compact, the project-root CLAUDE.md is re-read from disk and re-injected into the session. Nested subdirectory CLAUDE.md files are not re-injected automatically. They reload the next time Claude reads a file in that subdirectory.<sup>[3]</sup> Path-scoped rules behave the same way and for the same reason: they are not re-injected either, and reload the next time Claude reads a file matching their patterns.<sup>[3]</sup> Instructions you gave only in conversation do not survive compaction. Add them to CLAUDE.md if they need to persist.
 
----
-
 ## The @import Syntax
 
 CLAUDE.md files can pull in other files using @path/to/import syntax anywhere in the file.<sup>[3]</sup>
@@ -107,8 +99,6 @@ Use TypeScript with strict mode enabled.
 One thing the exam will test: imports do not reduce context. Splitting a 400-line CLAUDE.md into four 100-line files and importing all four produces the same total context as the monolith did. The organization benefit is real (teams can own individual files; review is easier; diffs are cleaner), but the context budget does not shrink.<sup>[3]</sup> For reducing context, path-scoped rules are the correct mechanism.
 
 Importing also works for team-shared references. A team can maintain a standards/ directory with agreed-upon conventions and reference those files from CLAUDE.md with @ syntax. Works with AGENTS.md too: if a repository already uses AGENTS.md for another coding assistant, a CLAUDE.md that starts with @AGENTS.md lets both tools read the same instructions without duplication.<sup>[3]</sup>
-
----
 
 ## The .claude/rules/ Directory
 
@@ -144,8 +134,6 @@ If your conventions are directory-bound (this specific API module has unique aut
 
 The case that tests this: a team wants to enforce TypeScript conventions on test files that are distributed throughout a monorepo. A subdirectory CLAUDE.md would require one file per directory containing tests. A path-scoped rule with **/*.test.tsx covers the entire codebase with one file, and the objectives use that exact pattern as their worked example of applying conventions by file type regardless of directory location.<sup>[1]</sup>
 
----
-
 ## What Makes Guidance Apply
 
 Everything so far has been about where a file lives. The harder question, and the one Domain 3 keeps returning to, is what makes its content show up at all. There are four triggers, and each selects a different mechanism. Getting the trigger right is most of the work; after that the mechanism is forced.
@@ -155,7 +143,7 @@ Everything so far has been about where a file lives. The harder question, and th
 | Always, every session | CLAUDE.md at any scope, plus rules with no paths frontmatter, plus anything reached by @import | Context, every session, whether relevant or not |
 | Only at a matching path | .claude/rules/ with a paths glob | Context only when a matching file is read |
 | Only during a particular task | A skill | Context only when invoked or judged relevant |
-| Regardless of what Claude decides | A hook | No model discretion involved |
+| Regardless of what Claude decides | A permission rule, or a hook | No model discretion involved |
 
 The first row is larger than people expect. A root CLAUDE.md section, a user CLAUDE.md, a CLAUDE.local.md, a rule with no frontmatter, and any file pulled in by @import all land in the same bucket: loaded at launch, present for the whole session, paid for whether or not the session ever touches the subject. Splitting a monolith into imports moves content between files in that bucket, never out of it.
 
@@ -164,6 +152,20 @@ The second row is the only one that reduces what loads. A rule with a paths fiel
 The third row belongs to skills, which Chapter 7 owns. The boundary is worth stating here because it is a boundary and not a preference: always-on universal standards belong in CLAUDE.md, and a task-specific workflow invoked on demand belongs in a skill.<sup>[2]</sup> The documentation draws the same line from the memory side: an entry that is a multi-step procedure, or that matters only in one part of the codebase, is a skill or a path-scoped rule rather than a CLAUDE.md entry.<sup>[3]</sup>
 
 The fourth row leaves the memory system entirely. CLAUDE.md and rules are context, not enforced configuration, and to block an action regardless of what Claude decides you need a PreToolUse hook.<sup>[3]</sup> No amount of emphasis in a markdown file converts guidance into a guarantee.
+
+### The fourth row has two occupants
+
+Naming only the hook there understates the row, and the omission costs marks, because the other occupant is the one a configuration question is usually reaching for. Permission rules live in settings.json and come in three kinds: allow, which lets a tool run without a prompt; ask, which forces a confirmation; and deny, which refuses the call. They are evaluated deny first, then ask, then allow, and the first rule that matches decides.<sup>[4]</sup>
+
+Both mechanisms sit outside model discretion, so the choice between them is not about strength. It is about what the rule needs to know.
+
+A permission rule is declarative. It matches on a tool name and, for several tools, a specifier: a path pattern for reads and edits, a command pattern for shell calls, a domain for network fetches.<sup>[4]</sup> It can say that this tool is off, or that this directory is unreadable, or that this command shape always asks first. What it cannot do is look at an argument's value and decide. There is no permission rule expressing a threshold, because matching a pattern is the whole of its vocabulary.
+
+A hook is code, so it can. It receives the call and its arguments and returns a decision it computed. A rule that turns on a number, a lookup, or a comparison against session state has to be a hook, because those are not patterns.
+
+The practical form of the distinction: if the requirement can be written as *this tool, never* or *this path, never*, it is a permission rule, and reaching for a hook is more machinery than the job needs. If the requirement is *this tool, unless the amount is under the limit*, it is a hook.
+
+That gives Domain 3's restructuring question its shape. An instruction sitting in CLAUDE.md that describes something the project must never do is misplaced twice over: it is advisory where it needs to be enforced, and it is paying context rent every session to be advisory. Moving it to a deny rule costs nothing per session and holds regardless of what the model concludes. The reverse move is a mistake of the same kind. A convention about how code should be written is not a candidate for a permission rule, because there is no tool call to match on and no boolean to return; it is guidance, and guidance is what the memory files are for.
 
 ### The wrong fixes, named first
 
@@ -179,8 +181,6 @@ Each row of that table has a plausible neighbor that has cost people points. The
 
 That last case is a diagnostic problem rather than a design problem, and it has its own command, which this chapter reaches shortly.
 
----
-
 ## Size Guidance and What It Tells You
 
 The documented target is **under 200 lines per CLAUDE.md file**.<sup>[3]</sup>
@@ -193,8 +193,6 @@ Block-level HTML comments in CLAUDE.md files (<!-- maintainer notes -->) are str
 
 For instructions where compliance is genuinely required, the right mechanism is hooks, not CLAUDE.md. Hooks execute as shell commands at fixed lifecycle events and apply regardless of what Claude decides to do. Hooks are Chapter 3’s territory, but the handoff point is important: CLAUDE.md is behavioral guidance; hooks are programmatic enforcement.
 
----
-
 ## User-Level Rules
 
 The user scope applies to more than just ~/.claude/CLAUDE.md. A ~/.claude/rules/ directory works the same way as the project-level .claude/rules/ directory, but applies to every project on your machine.<sup>[3]</sup> Use it for personal preferences that are not project-specific: output verbosity, preferred code review style, debugging approaches.
@@ -202,8 +200,6 @@ The user scope applies to more than just ~/.claude/CLAUDE.md. A ~/.claude/rules/
 User-level rules follow the same two-tier behavior: rules without paths frontmatter load universally; rules with paths frontmatter are path-scoped. They are also loaded before project rules, which is the same broad-to-specific ordering the CLAUDE.md scopes use.<sup>[3]</sup>
 
 The sharing constraint applies here identically to user CLAUDE.md: personal rules in ~/.claude/rules/ are yours. Teammates do not see them.
-
----
 
 ## The /memory Command
 
@@ -216,8 +212,6 @@ A version note, because this surface has moved since the objectives were written
 Common diagnostic flow: a team member reports that Claude is not following the project style guide. Check what loaded. If the project CLAUDE.md is not there, either the file does not exist at a location that gets loaded for that session, or a claudeMdExcludes configuration is blocking it. If the file is there, check whether the instruction is specific enough. “Format code properly” will not produce consistent results; “use 4-space indentation for Python files” will.<sup>[3]</sup>
 
 The *claudeMdExcludes* setting is relevant in large monorepos: ancestor CLAUDE.md files may contain instructions that are irrelevant to your current work. The *claudeMdExcludes* setting (available at any settings layer*: user, project, local, or managed policy*) lets you skip specific files by path or glob pattern, matched against absolute paths. Arrays from different layers merge rather than replace one another. Managed policy CLAUDE.md files cannot be excluded.<sup>[3]</sup>
-
----
 
 ## The Key Trap
 
@@ -234,8 +228,6 @@ This is the canonical user-level-versus-project-level mistake, and it has a shap
 The fix is mechanical: move the instruction from ~/.claude/CLAUDE.md to .claude/CLAUDE.md in the repository. Commit it. Done.
 
 Everything the team needs to share goes in the project scope. Everything personal stays in user scope or local scope. That is the complete decision rule.
-
----
 
 ## Putting It Together: A Config Anatomy
 
@@ -272,8 +264,6 @@ The CLAUDE.md at project root (or .claude/CLAUDE.md) is short. It covers broad t
 
 Nobody wrote 800 lines in one file. Nobody put personal preferences in the committed config. Nobody wrote team standards in their home directory.
 
----
-
 ## Key Takeaways
 
 **Four scopes, one direction.** Managed policy loads unconditionally for all users. User is personal and applies to all projects. Project loads from version control and applies to the team. Local is personal, gitignored, and project-specific. *More-specific scope content is read later in the assembled context.*
@@ -289,8 +279,6 @@ Nobody wrote 800 lines in one file. Nobody put personal preferences in the commi
 **/memory is the diagnostic command.** If an instruction is not being followed, establish that the file loaded before editing what it says. If the file did not load, Claude cannot see it. If it did, the instruction is too vague or conflicts with another. Current documentation moves the did-it-load report to /context, while /memory locates and opens the files.
 
 **The exam’s primary trap.** Team instructions in user-level config (~/.claude/CLAUDE.md) are invisible to teammates. Project instructions belong in .claude/CLAUDE.md, committed to version control. This is the most commonly tested configuration mistake in Domain 3.
-
----
 
 ## Sample Questions
 

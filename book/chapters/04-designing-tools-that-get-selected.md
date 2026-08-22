@@ -4,8 +4,6 @@
 
 *This chapter introduces the concept of **tool descriptions as routing keys** and explains why getting tool descriptions right is the highest-leverage act in tool design. It covers the full structure of a tool definition, how the API assembles that structure into a system prompt the model reads, and how tool_choice lets you control selection when the model’s autonomy is not what the situation requires. It also explains what happens when agents have too many tools, and why the solution to that problem is not better descriptions: it is better distribution.*
 
----
-
 ## The Bug That Isn’t a Bug
 
 Production logs show that the agent frequently calls the wrong tool. A user types “check my order #12345” and the agent calls get_customer instead of lookup_order. Both tools accept similar identifier formats. Both have minimal descriptions: "Retrieves customer information" and "Retrieves order details". The agent is not broken. It is doing exactly what you told it to do, which is to choose between two tools with descriptions so similar that the choice is essentially random noise.<sup>[1]</sup>
@@ -17,8 +15,6 @@ The correct answer is B: expand each tool’s description to include input forma
 Option A adds token overhead without fixing the root cause. Option C is over-engineered and bypasses the model’s natural language understanding with a brittle keyword-matching layer that needs to be maintained in parallel with the tools themselves. Option D has merit in some situations, but consolidating tools is a structural decision with tradeoffs, not a first step when the actual problem is a description that is three words long. Option B directly addresses why the routing failed. The descriptions gave the model nothing to work with.
 
 That is the thesis of this chapter. And it is also the named concept: **tool descriptions as routing keys**. The model selects tools based on description semantics, not on the tool’s actual implementation. A tool that does something sophisticated but has a vague description will be misrouted. A tool that does something simple but has a precise, boundary-rich description will be selected correctly almost every time. Tool design is prompt engineering applied to the tool layer, and the exam tests whether you understand that.
-
----
 
 ## What a Tool Definition Actually Is
 
@@ -96,8 +92,6 @@ A routing key:
 
 The second version specifies what the tool returns, what input formats it accepts, when to use it, and explicitly when not to use it. That last part matters. The phrase “Do NOT use this tool to look up customer account information” is not redundant with having a separate get_customer tool. The model needs to see the boundary stated from both sides: what lookup_order does, and what it explicitly does not cover. If only get_customer says “use this for customer information,” the model may still be uncertain whether an order lookup is also a kind of customer information retrieval. State the boundary twice, once in each tool. Both sources point the same way. The exam guide asks that a description say when to use the tool against its similar alternatives, a statement each tool has to make for itself; the API documentation asks that it cover when the tool should not be used and name what it does not return.<sup>[1,2]</sup>
 
----
-
 ## The Four Modes of Tool Selection
 
 Once you have tools defined, you control how the model uses them with the tool_choice parameter. There are four values.<sup>[2]</sup>
@@ -126,8 +120,6 @@ The pattern is narrow enough to state exactly. Force the prerequisite on the tur
 
 If instead a step must never precede its prerequisite anywhere in a session, a per-request parameter is the wrong altitude and the durable answer is to make the second tool unavailable until the first has run. Chapter 3 covers that enforcement layer.
 
----
-
 ## When Descriptions Are Not Enough: The Overlap Problem
 
 Good descriptions address the scenario where each tool has a distinct purpose but the description fails to communicate it. A different failure mode arises when two tools have descriptions that are genuinely close because the tools themselves do similar things. analyze_content and analyze_document with near-identical descriptions are the exam guide’s example.<sup>[1]</sup>
@@ -146,8 +138,6 @@ Splitting and merging point in opposite directions, so it is worth saying which 
 
 One wrong reach is specific to multi-agent designs, and it is worth naming before the next section makes distribution sound like a universal remedy. When two tools overlap, the reflex is to put them in different agents so that neither agent sees both. That works only if the two genuinely belong to different specializations. If they serve the same job, they land in the same specialized agent and the ambiguous pair is intact inside it. Distribution moved the tools without removing the overlap, because the overlap lives in the definitions. Only consolidation removes it.
 
----
-
 ## System Prompt Keyword Sensitivity
 
 This is the failure mode that surprises architects who have done everything else right. You write careful, boundary-rich descriptions for every tool. You test routing on a set of representative inputs. Routing looks clean. Then a category of request starts misrouting and you cannot figure out why, because the descriptions are correct.
@@ -157,8 +147,6 @@ The problem is in the system prompt, not the tool descriptions. The API construc
 This is system prompt keyword sensitivity. The fix is to review the full constructed prompt, not just the tool definitions, looking for instructions that might create unintended tool associations. Phrases that read as reasonable business logic to a human (“verify the customer before proceeding”) can act as hidden routing overrides to the model. Rephrase them in terms of workflow sequencing rather than entity-type associations: “call get_customer before calling process_refund” is much safer than “always check customer information first” if you have three different tools that touch customer data.
 
 There is a secondary version of this problem: a system prompt instruction intended to shape tone or behavior can accidentally pattern-match to a tool use trigger. An instruction like “when users ask about account status, be comprehensive” might associate “account status” with get_customer in a way that pulls order-related queries toward the customer tool. Auditing system prompts for accidental keyword-to-tool associations is not optional in production systems; it is part of the tool design process.<sup>[1]</sup>
-
----
 
 ## The 18-Tool Problem
 
@@ -204,8 +192,6 @@ Scoping is not quite as absolute as that makes it sound, and the guide names the
 
 Note that the coordinator’s tool list is small and semantic: spawn a subagent, summarize results, format a response. The coordinator never has to reason about whether to call track_package or update_shipping. That distinction has been pushed down into the order_agent, where it is a choice among four related tools rather than one among eighteen unrelated ones, which is the scoping the guide asks for: each agent holds the tools its role needs and no others.<sup>[3]</sup>
 
----
-
 ## Writing a Routing Key: The Mechanics
 
 Given everything above, here is what a complete routing-key description includes.
@@ -226,8 +212,6 @@ That last sentence reaches past the description and into the response itself. A 
 
 The input_examples field is an additional channel for this information. For tools with complex nested inputs or optional parameters with unclear interplay, examples show the model what a well-formed call looks like. An example with only the required parameters shows that optional ones are genuinely optional. An example with a specific format for a phone number shows the format more concretely than a prose description can.<sup>[2]</sup>
 
----
-
 ## What the Exam Tests
 
 The exam’s Sample Question 2 is the clearest signal about what this domain tests.<sup>[1]</sup> The correct answer is expanding descriptions, and the explanation is explicit: descriptions are the primary mechanism, and minimal descriptions leave the model without context to differentiate similar tools. The distractors are all recognizable patterns (few-shot prompting, routing layers, tool consolidation) that have legitimate uses elsewhere but are over-engineered or misdirected as first responses to a routing failure caused by bad descriptions.
@@ -239,8 +223,6 @@ The 18-tool scenario from Scenario 4 (Developer Productivity) tests distribution
 System prompt keyword sensitivity is a less obvious test point but it appears in Task Statement 2.1. Candidates who understand tool design only as “write good descriptions” will miss questions that require reviewing the system prompt for keyword-sensitive instructions that override those descriptions. The full audit scope is the constructed prompt, not just the tool definitions.
 
 Model selection is part of the tool count equation. The documented guidance is the latest Claude Opus model for complex tools and ambiguous queries, because it handles multiple tools better and will seek clarification when it needs to, and Claude Haiku models for straightforward tools, with the caveat that they may infer a missing parameter rather than ask for it.<sup>[2]</sup> Know which lever to reach for first: a model choice does not repair a tool surface.
-
----
 
 ## Key Takeaways
 

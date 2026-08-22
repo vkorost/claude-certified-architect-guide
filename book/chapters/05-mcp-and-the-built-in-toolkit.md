@@ -2,8 +2,6 @@
 
 **Summary:** *The Model Context Protocol gives agents a standard interface for discovering and invoking external tools across system boundaries. Claude Code’s built-in tools encode an opinionated workflow for exploring unfamiliar codebases: **Grep** to find entry points, **Read** to trace flows, **Edit** to make targeted changes, and **Bash** only when no built-in alternative exists. The exam tests both the MCP configuration model (in-code versus .mcp.json, transport types, allowedTools, environment variable expansion) and the selection rules for built-in tools. The most common failure pattern is reaching for Bash when a purpose-built tool already exists. MCP servers are configured via two paths: programmatic mcpServers options for single-agent applications, and .mcp.json at the project root for team-shared tooling committed to version control. Three installation scopes resolve local, then project, then user, and the winning scope supplies the whole server entry. Transport type follows server location: stdio for local processes, HTTP/SSE for remote servers. Credentials belong in environment variables, never hardcoded. The allowedTools contract governs which MCP tools an agent may invoke; permissionMode: "acceptEdits" does not auto-approve MCP tools, and bypassPermissions does without being absolute. The Incremental Exploration pattern for codebase navigation applies Grep first to find entry points, Read selectively to trace flows, and stops when enough context exists rather than loading every file upfront.*
 
----
-
 ## The 18-Tool Problem
 
 Scenario 4 in the exam guide sets an agent to work on developer productivity: making sense of code nobody on the team wrote recently, generating scaffolding, taking over the repetitive parts. The scenario is explicit about how. It works through the built-in tools, and it also connects to MCP servers.<sup>[1]</sup> Both halves of that sentence are testable, and they fail in different ways.
@@ -13,8 +11,6 @@ Picture the agent carrying eighteen tools, asked to read a configuration file, a
 The first is the tool count, and the exam guide states the principle plainly under Task Statement 2.3: an agent given eighteen tools rather than four or five selects less reliably, because each additional tool widens the decision it has to make.<sup>[1]</sup> The fix is distribution, and Chapter 4 owns it.
 
 The second is the wrong tool for the job, and that one is this chapter's. Read exists precisely to read files. **Bash exists for shell operations where no built-in tool covers the need.** Reaching past Read for a shell command that produces the same bytes is not a creative solution. It is a category error, and Task Statement 2.5 is built around not making it: every skills bullet pairs a class of work with the tool that does it.<sup>[2]</sup>
-
----
 
 ## The Standard: Model Context Protocol
 
@@ -27,8 +23,6 @@ For the exam, MCP matters across four areas: what a server can expose, how you c
 Start with what a server exposes, because it decides how everything else surfaces. MCP offers three kinds of thing, and each arrives through a different door. Tools are model-callable: Claude decides to invoke them, and they act. Resources are fetchable content, referenced the way a file is, with an @ mention shaped like `@server:protocol://resource/path`, and pulled in as an attachment. Prompts are templates the server author wrote, and they appear in the command list as `/mcp__servername__promptname`, taking arguments after the command.<sup>[4]</sup>
 
 The three doors do not swap. A server prompt is not prepended to the system prompt and does not join the tool registry; it becomes something you type. A resource does not become a callable function. Only tools are invoked by the model on its own initiative.
-
----
 
 ## Configuring MCP Servers
 
@@ -87,8 +81,6 @@ The ${JIRA_TOKEN} syntax expands from the runtime environment. The secret stays 
 
 Hardcoding a literal API key in .mcp.json is the anti-pattern here, and the exam guide names expansion as the mechanism that avoids it: credentials managed without the secret being committed.<sup>[2]</sup> That file is going to version control, because being shared is the whole reason it sits at the repository root. Anything literal inside it ships with the repository.
 
----
-
 ## Tool Naming and the allowedTools Contract
 
 MCP tools follow a deterministic naming pattern: mcp__<server-name>__<tool-name>.<sup>[3]</sup>
@@ -123,8 +115,6 @@ That is the same direction Chapter 3 established for hooks: the layers that take
 
 One further asymmetry belongs with these: allowedTools is a list of grants, not a ceiling. Naming three tools there does not confine bypass mode to those three, since everything left off matches no allow rule and is approved by the mode instead. Under bypass, the list that blocks is disallowedTools.<sup>[5]</sup> The permission mode values themselves are defined in Chapter 1. The application here is which mode reaches MCP tools, and what still stands in the way once it does.
 
----
-
 ## MCP Tool Search
 
 When you configure many MCP servers, their tool definitions accumulate in every request’s context. A few servers with many tools can consume significant context before the agent does any actual work.<sup>[6]</sup>
@@ -137,8 +127,6 @@ The core built-in tools are exempt: Bash, Read and Edit load upfront and are nev
 
 The full treatment of context cost and ToolSearch as an on-demand loading mechanism belongs to Chapter 11. For this chapter: tool search exists, it is on by default, and it exists because MCP server schemas are expensive to carry at all times and because a large loaded tool set is harder to choose from.
 
----
-
 ## MCP Resources
 
 Beyond tools, MCP servers can expose resources: content catalogs that give the agent visibility into available data without requiring exploratory tool calls.<sup>[2]</sup>
@@ -148,8 +136,6 @@ Consider an agent that needs to understand which Jira issues exist before decidi
 Resources reduce the exploratory overhead. For the exam, know that they exist and that their purpose is reducing unnecessary tool calls by giving the agent catalog-level visibility.
 
 Why this beats the alternatives is worth stating as a rule, because the competing fixes attack a different problem than the one causing the symptom. The symptom is that the agent cannot see what exists before it starts calling, so it probes. Folding several servers into one changes how many connections there are; putting a routing layer in front changes which server a call is sent to. Neither adds advance visibility, so neither shortens the probing. A resource does, because it puts the catalogue in front of the agent before the first call rather than reorganizing the calls afterwards.<sup>[2]</sup>
-
----
 
 ## Built-In Tools: The Opinionated Toolkit
 
@@ -213,8 +199,6 @@ Bash runs shell commands, scripts, git operations, test suites, and build proces
 
 Running tests, executing build scripts, git commits, arbitrary system operations: these belong to Bash because no purpose-built tool handles them. npm test is Bash. git commit is Bash. Neither Read nor Grep nor Edit has anything to say about running a test suite. The Bash selection rule is not “Bash is for things that are hard.” It is “Bash is for things that have no built-in tool.” The moment a built-in tool exists, that tool wins.
 
----
-
 ## Incremental Exploration
 
 This is the named concept for this chapter: **Incremental Exploration**.
@@ -244,8 +228,6 @@ Then, use Grep again to search for each exported name across the codebase. Each 
 
 This is the Grep-then-Read trace. It scales. You do not need to know the codebase structure in advance. You follow the evidence.
 
----
-
 ## How MCP and Built-In Tools Interact
 
 A real configuration will have both MCP tools and built-in tools available simultaneously. The model makes selection decisions based on tool descriptions. This creates a specific tension the exam tests: an MCP tool that does the same thing as a built-in tool but with better context for the specific use case.
@@ -256,8 +238,6 @@ The exam guide notes that enhancing MCP tool descriptions to explain capabilitie
 
 Tool selection by the model follows description quality. Vague MCP tool descriptions cede ground to well-specified built-in tools. This is the same principle Chapter 4 establishes for tool descriptions as routing keys. The application here is about cross-type competition: built-in versus MCP, decided by whoever wrote the better description.
 
----
-
 ## Parallel Execution: Read-Only Versus Stateful
 
 One operational detail worth knowing for the exam: built-in tools that are read-only (Read, Glob, Grep) can run concurrently when Claude requests multiple tool calls in a single turn. Tools that modify state (Edit, Write, Bash) run sequentially to avoid conflicts.<sup>[6]</sup>
@@ -265,8 +245,6 @@ One operational detail worth knowing for the exam: built-in tools that are read-
 This matters for Incremental Exploration. When tracing a large codebase, the agent can issue multiple Grep or Read calls in a single turn and receive results for all of them in parallel. Sequential reading is not forced on read-only operations.
 
 The rule reaches MCP tools too: a server that marks a tool read-only puts it in the concurrent group.<sup>[6]</sup> The dividing line is not built-in against external. It is whether the call changes anything.
-
----
 
 ## Configuration Errors and Recovery
 
@@ -285,7 +263,25 @@ Common failure causes and their fixes:<sup>[3]</sup>
 
 Tools that are configured but not called are also worth diagnosing. If Claude can see MCP tools but does not use them, the likely cause is missing allowedTools permission. The tool is visible; the call is blocked. Adding the tool name (or a wildcard) to allowedTools resolves it.<sup>[3]</sup>
 
----
+## The Two Error Channels
+
+Everything above concerns a server that never came up. A connected server has its own failure surface, and the protocol gives it two separate channels rather than one. Which channel a failure travels on is a design decision made by whoever writes the tool, and getting it wrong is not a cosmetic mistake: it determines whether the model is given something it can act on.
+
+The specification draws the line by asking who can fix the problem.<sup>[8]</sup>
+
+A **protocol error** reports a defect in the request itself. The named cases are an unknown tool, a request that fails to satisfy the call schema, and a server error. The reasoning the specification offers for grouping these is the useful part: they are the failures a language model is less likely to be able to repair. A call naming a tool that does not exist is not a question the model can answer better on a second attempt with different arguments. It is malformed at the layer beneath the conversation, and it is refused there.
+
+A **tool execution error** reports that the call was well formed, the tool ran, and the outcome was unwelcome. The named cases are API failures, input validation errors such as a date in the wrong format or a value out of range, and business logic errors. These travel as an ordinary tool result carrying the isError flag.<sup>[8]</sup> Anthropic's tool-use documentation defines the field the same way from the API side: is_error is set when the tool execution resulted in an error.<sup>[9]</sup> The specification's rationale is again the operative half: this class is actionable feedback the model can use to correct itself and retry with adjusted parameters.
+
+Two consequences follow, and they are where the design work actually is.
+
+The first is that an unhappy answer from an upstream system is not a protocol error. A calendar API that returns a not-found for a user who does not exist has answered the question. The tool was called correctly, it ran, it reached the API, and the API said no. That is a result, and it belongs in the result channel with the flag set, where the model can read it and try a different lookup. Routing it to the protocol channel asserts that the request was malformed, which is untrue, and removes the model's ability to reason about the outcome at all. The instinct that misfiles it is understandable: a not-found feels like a failure. Feeling like a failure is not the test. The test is whether the request was answerable as written.
+
+The second is that the line does not fall where the word "validation" suggests. A request missing a field the call schema marks required never satisfies the schema, so it is refused as a protocol error before the tool body runs. A request that is structurally complete but semantically wrong, a date in an unparseable format or a quantity outside the permitted range, reaches the tool and comes back as an execution error.<sup>[8]</sup> Same word, opposite channels, and the discriminator is whether the defect is visible to the schema or only to the code behind it.
+
+The specification's own worked example of the second channel is worth carrying, because it shows the pattern at its cleanest. A tool that hands out a state handle, and is later called with a handle that has expired or was never issued, should return a tool execution error saying so, precisely so the model can recover by creating a new one.<sup>[8]</sup> The failure is reported in the channel the model can act on, and the message names the recovery.
+
+This chapter owns the wire-level contract only: which channel a failure takes and why. What the message should contain once it is in the result channel, whether a given failure is worth retrying, and how a failure travels upward through a multi-agent system are Chapter 12's subject.
 
 ## Exam Patterns: What Gets Tested
 
@@ -304,8 +300,6 @@ The exam draws heavily on this chapter’s material. Here is how the testable co
 **Question type: Write versus Edit.** A task modifies an existing file. Which tool? Edit, because it preserves unchanged content. Write is for new files. Using Write on an existing file without including all the original content destroys the content you omitted.
 
 **Question type: Edit fallback.** Edit cannot find unique anchor text. What is the recovery path? Read the file into context, then Write the complete corrected content.
-
----
 
 ## Key Takeaways
 

@@ -2,8 +2,6 @@
 
 **Summary:** *A reliable agentic system knows when not to act. Valid escalation triggers are objective and verifiable: an explicit customer request for a human agent, a genuine policy gap, an inability to make progress, and an ambiguous match requiring clarification. A business ceiling such as a refund limit is enforced deterministically before the call rather than left to the agent's judgment. Negative sentiment and model self-confidence are not valid triggers, though self-reported confidence has a legitimate use elsewhere: prioritizing a human review queue after the fact. Error propagation must be structured and distinguishable: an access failure and a valid empty result look identical to a coordinator that receives only an empty array, yet the downstream consequences differ entirely. Provenance tracking must survive synthesis steps, because a claim without its source citation is not a claim anyone can act on. A provenance record, which this book calls DataWithProvenance, preserves claim-source mappings through synthesis by pairing each extracted value with its source, a category describing how it was obtained, and a retrieval timestamp. Accuracy broken out by document type and by field reveals per-category failure rates that an aggregate number hides; a pipeline reported at 97% overall may be failing nearly a third of one document type. Structured handoff summaries ensure that human agents receiving escalated tickets have the specific facts they need without re-interviewing the customer.*
 
----
-
 ## The Ticket That Should Have Closed Itself
 
 The human agent opens the ticket. Billing discrepancy. A straightforward overcharge. The support agent had routed it to the human queue with a note that said “negative sentiment detected.”
@@ -13,8 +11,6 @@ The overcharge is real. It is also trivially within the agent’s own resolution
 This is the trap the exam calls out directly. The exam guide puts two signals side by side, routing driven by sentiment and routing driven by the model's own confidence, and calls both unreliable stand-ins for how complex a case actually is. One of the guide's own worked items places a sentiment-threshold router among the wrong answers.<sup>[1]</sup> The customer was frustrated. The task was simple. Those two things are independent, and the system conflated them. This chapter is about the patterns that prevent that conflation: knowing when to escalate, how to communicate failure, and how to preserve the chain of evidence that makes a decision auditable.
 
 The scene above is the book's own illustration. No source prints it, no ticket number or customer is named in it, and nothing in the argument depends on its details. It exists to put a shape on a failure that is otherwise hard to see, because the system that produced it reported success.
-
----
 
 ## Knowing When Not to Act Autonomously
 
@@ -64,8 +60,6 @@ The guide is explicit on one instance. When a tool result comes back with severa
 
 The book's own reading of the surrounding shape, offered as a reading rather than as something the guide states: the choice between asking and proceeding tracks reversibility, not difficulty. An ambiguous read is cheap to get wrong, so an agent that has a defensible interpretation should state the interpretation it is acting on and proceed, leaving the correction path open. An ambiguous delete or an ambiguous refund is not cheap to get wrong, so the interpretation gets confirmed before the call rather than after it. Two consequences fall out of that. First, more clarifying questions is not automatically safer; each one is a place the interaction can be abandoned, and an agent that opens with a list of questions has delivered nothing yet. Second, when a destructive action does misfire on the wrong record, the fix is disambiguation at the moment of confirmation, showing the fields on which the candidates differ. A longer undo window is a real mitigation but it addresses the consequence rather than the cause, and the rate of wrong identifications under it is unchanged.
 
----
-
 ## Structured Handoff Summaries
 
 When escalation does happen, the agent has an obligation to the human receiving the ticket. That obligation is information.
@@ -75,8 +69,6 @@ In the architecture the guide describes, the human agent receiving the escalatio
 The ***structured handoff summary*** solves this. When compiling an escalation, the agent includes: *customer ID, root cause analysis, the amounts involved, *and a* recommended action*.<sup>[3]</sup> These are not summaries in the progressive-summarization sense, where details get lost in compression. They are structured extractions: specific, identifiable fields that a human can act on without re-interviewing the customer.
 
 The handoff summary is the bridge between the agent’s context and the human’s context. Build it deliberately.
-
----
 
 ## Self-Critique: The Evaluator-Optimizer Pattern
 
@@ -91,8 +83,6 @@ Distinguish this carefully from the same-session self-review anti-pattern in Cha
 This is also why self-critique, not few-shot, is the correct intervention when the defect varies case to case. Few-shot examples teach a fixed pattern. When the omission is a moving target (policy this time, timeline next time, next-steps the time after), a finite example set cannot enumerate the space of possible gaps. A rubric check catches whatever gap appears in this specific output, because the rubric is defined abstractly over the dimensions of completeness rather than over a list of pre-seen cases. The intervention classifier in Chapter 9 turns on exactly this discriminator: the word "vary" in the stem eliminates few-shot and selects self-critique.
 
 Keep this separate from the two review architectures the exam groups under Task 4.6: multi-instance and multi-pass review. Multi-instance review is a separate model instance with no shared reasoning context, the independent-reviewer pattern from Chapter 8; it is correct when the target is correctness and the generator’s retained context would bias the review. Multi-pass review, also covered in Chapter 8, splits a large multi-file review into per-file passes plus a cross-file integration pass to counter attention dilution; it is a decomposition move, not a self-critique move. The evaluator-optimizer pattern described here is a third, distinct operation: the same model running a second-pass check of a single draft against a completeness rubric. Three patterns, three failures. Per-case quality that varies unpredictably calls for the second-pass self-critique here; a generator biased toward confirming its own reasoning calls for multi-instance review; attention diluted across many files calls for multi-pass review. Read the stem for the failure it actually describes; the options will usually offer more than one, and the wrong choice is the right pattern aimed at the wrong failure.
-
----
 
 ## Access Failure vs Valid Empty Result
 
@@ -148,8 +138,6 @@ An MCP server can notify Claude Code that its tool list has changed, at which po
 
 Read that as the chapter's own distinction and it is exact. A refresh that fails is an access failure. An empty list is a valid empty result meaning the server offers nothing. The old code returned the second for the first, and the visible symptom would have been an agent that calmly reported it had no tool for the job, which is the same shape as the synthesis agent concluding that no research exists. The fix was not better error text. It was refusing to let a failure be represented as data.
 
----
-
 ## Local Recovery Before Coordinator Escalation
 
 A related principle governs how errors move through the system: subagents implement local recovery for transient failures and propagate only errors they cannot resolve.<sup>[4]</sup>
@@ -174,6 +162,8 @@ The correct behavior sits between them, and it is not a compromise between them.
 
 The platform's default leans the same way. In the Agent SDK, an error raised inside a tool handler does not stop the agent loop; the in-process MCP server converts it into an error result and the loop continues, so Claude can retry, reach for a different tool, or explain the failure.<sup>[5]</sup> The framing is worth borrowing: how a failure is reported determines what the model reads, not whether the run survives. There is one real difference between letting an exception escape and catching it. An uncaught exception reaches Claude as the raw exception message. A caught error returned with the failure flag reaches Claude as whatever the handler composed, which can name the request that failed and what to try instead.<sup>[5]</sup> Same outcome for the loop, very different quality of information at the point of recovery. That is structured error context, arrived at from the tool side rather than the subagent side.
 
+All four of those categories presuppose that the failure reached the result channel in the first place. Chapter 5 covers the prior question, which is whether a given failure belongs in that channel at all or is refused at the protocol layer before the tool runs. Everything in this section applies to failures that arrived as results.
+
 The taxonomy from Task Statement 2.2 covers four error categories: transient (timeouts, service unavailability), validation (invalid input format), business (policy violations), and permission (access denied).<sup>[4]</sup> Each category implies a different coordinator response. 
 **Transient**: retry with backoff. 
 **Validation**: fix the query. 
@@ -190,8 +180,6 @@ The test is not severity and it is not category membership. It is whether anythi
 
 There is a third state that neither category covers and it is a genuine trap. Claude Code reports MCP server status as one of pending, connected, failed, needs-auth, or disabled, and the documentation says directly that pending is not a failure: it commonly means a server has not connected yet or that its tool list was served from cache with the connection deferred to first use.<sup>[7]</sup> Not-yet is a third outcome alongside succeeded and failed, and collapsing it into either one produces a wrong decision. Treated as failure, a working server gets written off. Treated as success, the coordinator concludes that a server with no tools listed has nothing to offer.
 
----
-
 ## Structured Error Context
 
 Generic error propagation is an anti-pattern for the same reason generic status codes are anti-patterns: they hide recovery-relevant information behind a label.
@@ -207,8 +195,6 @@ Structured error context includes:<sup>[4]</sup>
 
 This is more tokens. It is also the information that separates a coordinator that can recover intelligently from one that can only guess. The extra context is the interface contract between the subagent and the coordinator.
 
----
-
 ## Coverage Annotations
 
 Synthesis output has the same information-completeness problem as error propagation, in a different form. When a synthesis agent compiles findings from multiple subagents, some topic areas may be well-covered and others may have gaps because sources were unavailable or subagents failed.<sup>[4]</sup>
@@ -222,8 +208,6 @@ The exam guide lists coverage annotation among the skills under error propagatio
 Worth noticing where the annotation has to originate. It cannot be produced at synthesis by inspection, because by then the failure looks like an absence, and an absence is exactly what a successful query with no matches also looks like. The synthesis agent can only annotate a gap that something upstream told it about. Coverage annotation is therefore not an output-formatting decision; it is the last visible consequence of the reporting discipline in the preceding three sections. Get the error contract wrong and the annotation cannot be written, however carefully the synthesis prompt asks for it.
 
 The platform provides a small demonstration of the same dependency. Claude Code tells the model which MCP server failed to connect and what the connection error was, including when a tool search comes back with no matching tool, so the model can report the connection failure rather than concluding the capability does not exist. That reporting depends on tool search being active, and in configurations without it, which include a custom API base URL, tool search switched off, a model that does not support it, and several hosted deployments, failed server connections are not reported to the model at all.<sup>[6]</sup> In those configurations, an unreachable server and a nonexistent capability are indistinguishable from inside the conversation. The mechanism that would carry the annotation is absent, so no amount of instruction produces one.
-
----
 
 ## Claim-Source Mappings and the DataWithProvenance Pattern
 
@@ -253,8 +237,6 @@ The first is sectioning. When sources genuinely disagree, a synthesis agent tend
 
 The second is rendering. Synthesis pulls in content of different kinds, and converting all of it to one format costs something on at least one of them. Financial figures belong in tables, news findings in prose, technical results in structured lists.<sup>[8]</sup> Standardizing everything to a common intermediate representation before synthesis does not avoid this, because a common representation is itself a uniform format and imposes the same flattening one step earlier. Rendering by content type at synthesis is the move.
 
----
-
 ## Conflicting Statistics
 
 Multi-source research systems will produce conflicting data. Two subagents searching different sources will find different numbers for the same metric. The naive resolution strategies are wrong in specific, auditable ways.
@@ -266,8 +248,6 @@ Multi-source research systems will produce conflicting data. Two subagents searc
 The correct approach is explicit annotation: include both values with their source attribution, confidence levels, and publication or collection dates.<sup>[8]</sup> The synthesis agent does not resolve the conflict; it presents the conflict with full context, allowing downstream humans or system components to make an informed reconciliation decision.
 
 Requiring publication and collection dates in structured outputs is the specific mechanism for distinguishing temporal differences from genuine contradictions.<sup>[8]</sup> Two studies measuring the same quantity at different points in time may both be correct: the quantity changed between measurements. Without dates, that temporal difference looks like a factual disagreement. With dates, it looks like a historical trend, which is a more accurate representation.
-
----
 
 ## Stratified Accuracy Metrics
 
@@ -303,8 +283,6 @@ The rejected use has none of the three. An uncalibrated number gates an irrevers
 
 Which leads to the output shape that a well-designed extraction pipeline actually emits. When both failure directions are present at once, low-confidence extractions passing through unreviewed and correct ones consuming review time, neither is a prompting defect and few-shot examples will not fix either. The pipeline output has to carry three things: the extracted fields with their confidence scores, a review flag whose threshold was set against labeled data, and the reasons that flag was raised. The scores alone leave the threshold decision to whatever reads the output next, which is how the first failure happens. The flag alone tells a reviewer that something needs attention without saying which field, which is how the second one persists. Both directions close only when the calibrated decision and the field-level explanation travel together.
 
----
-
 ## Practice Question: Putting It Together
 
 Consider this scenario. A multi-agent research system has a web search subagent, a document analysis subagent, and a synthesis subagent. The web search subagent experiences a database timeout while searching for recent statistics. It returns {"results": [], "status": "ok"} to indicate it found nothing. The synthesis subagent receives this result and compiles a report concluding that no recent data exists for the queried topic. The report does not indicate any gaps in source coverage.
@@ -316,8 +294,6 @@ The corrected design addresses each independently. The web search subagent sets 
 The three failures are worth separating because fixing only the first is the common half-measure. A subagent that reports honestly into a pipeline with no coverage annotation still produces a confident report, because the honest signal has nowhere to go. Reporting, propagation and annotation are one chain, and the chain has the strength of its weakest link rather than the average of the three.
 
 This is what “knowing when not to act autonomously” actually means in practice: it is not only about escalation thresholds. It is about every design decision that preserves signal through the pipeline rather than silently dropping it.
-
----
 
 ## What the Exam Tests
 
@@ -336,8 +312,6 @@ For provenance, the exam tests it as a design decision made at the subagent outp
 Coverage annotations and conflicting statistics are tested together: the exam asks what the correct synthesis behavior is when sources disagree or when a source category was unavailable. Annotation with source attribution and dates is the answer; averaging, ranking by provenance, or silently discarding gaps is the anti-pattern.
 
 For human review and confidence calibration, the exam tests the ordering. Validate accuracy by document type and by field before reducing review, not after; a production pilot measures the aggregate again and leaves the failing segment hidden. Stratified random sampling of high-confidence outputs measures the error rate inside them and finds novel patterns, which heuristic rules over known error features cannot do. And confidence scores are acceptable for routing a review queue once calibrated against labeled data, while remaining unacceptable as an autonomous escalation gate.
-
----
 
 ## Key Takeaways
 

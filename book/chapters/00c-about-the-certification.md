@@ -1,7 +1,5 @@
 # About the Certification
 
----
-
 ## What the CCAR-F Is
 
 The Claude Certified Architect Foundations certification is Anthropic's foundational credential for engineers and architects working with Claude at a systems level. It validates the ability to design, configure, and reason about Claude-based systems across the full range of architectural concerns: agentic loops, tool ecosystems, configuration hierarchies, prompting strategies, and context management.
@@ -9,8 +7,6 @@ The Claude Certified Architect Foundations certification is Anthropic's foundati
 The CCAR-F is not a general AI literacy credential. It is specifically about Claude's architecture and the trade-offs that appear when you build production systems with it.
 
 The exam code is CCAR-F. Material circulating under the code CCA-F predates the current program and should be treated with suspicion on that basis alone.
-
----
 
 ## The Exam at a Glance
 
@@ -35,8 +31,6 @@ Two consequences of that table are worth drawing out.
 
 If you do not pass, the waiting period is 14 days after a first failure, 30 after a second, and 90 after a third, with up to four attempts in a rolling twelve-month period. Those limits apply per exam.
 
----
-
 ## The Multiple-Response Format
 
 Some items ask for more than one response, and each such item states how many. This is worth a paragraph because it is the one format issue that costs points for reasons unrelated to knowledge.
@@ -44,8 +38,6 @@ Some items ask for more than one response, and each such item states how many. T
 Read the response count before you read the options. An item asking for two correct answers is a different question from one asking for the single best answer, and the option set is built differently: a two-response item generally contains two defensible answers and two that are wrong, rather than one clearly best answer among three weaker ones. Reading the options first and looking for the best one will make a two-response item feel ambiguous, because you are looking for a distinction the item is not making.
 
 The published guide does not state whether partial credit applies to a multiple-response item. Treat the stated count as binding: select exactly that many, no more and no fewer.
-
----
 
 ## The Five Domains
 
@@ -61,15 +53,11 @@ Those five domains contain thirty task statements between them, and items are wr
 
 Weights describe how many items a domain contributes, not how difficult those items are. Domain 1 is the heaviest at 27 percent. Domain 5 is the lightest at 15 percent and contains several of the distinctions most likely to be answered incorrectly under time pressure, because its failure modes disguise themselves as other domains' failure modes.
 
----
-
 ## What the Exam Tests
 
 The exam tests architectural reasoning, not recall. Questions are scenario-based. A scenario describes a system with specific constraints, then asks you to identify the correct architectural pattern, diagnose a failure mode, or choose between two plausible configurations and explain which trade-off is acceptable. Memorizing parameter names is not sufficient. Understanding why those parameters exist and what happens when you choose wrong is what the exam is after.
 
 The characteristic wrong answer is not nonsense. It is the right intervention aimed at the wrong failure, which is why several chapters in this book name the tempting fix before naming the correct one.
-
----
 
 ## The Six Recurring Scenarios
 
@@ -85,8 +73,6 @@ The exam draws four of these six scenarios for any given sitting, with six items
 Because only four appear on a form, and because forms vary between sittings, the same underlying content shows up in different scenario clothing. Tool routing and workflow enforcement can sit inside a support scenario on one sitting and inside an extraction scenario on the next. Prepare against the domain objectives rather than against the scenarios, and use the scenarios to recognise the context quickly rather than to predict the content.
 
 The published guide gives each scenario a short framing paragraph and its primary domains. It does not publish scenario walkthroughs. The back matter includes a reference to all six with the guide's framing and a pointer to the chapters covering each one's trade-offs.
-
----
 
 ## Coverage in This Book
 

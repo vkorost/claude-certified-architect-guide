@@ -6,8 +6,6 @@ This map lists all thirty and points each at the chapter that owns it. The task 
 
 One structural note before the table. The chapter order follows the reading argument of the book rather than the blueprint order, so two domains are not contiguous. Task statement 2.2, the MCP error contract, sits in Chapter 12 alongside the rest of the error propagation material, because the contract and its consequences are one subject. Task statements 4.5 and 4.6, batch processing and review architectures, sit in Chapter 8 with the CI material for the same reason. Follow the pointers rather than the chapter numbers when drilling a domain.
 
----
-
 ## Domain 1: Agentic Architecture and Orchestration, 27 percent
 
 The heaviest domain. Chapters 1, 2 and 3.
@@ -22,8 +20,6 @@ The heaviest domain. Chapters 1, 2 and 3.
 | 1.6 | Choosing a decomposition strategy for a complex piece of work | 2 |
 | 1.7 | Managing session state: resuming, continuing and forking | 2 |
 
----
-
 ## Domain 2: Tool Design and MCP Integration, 18 percent
 
 Chapters 4 and 5, plus the error contract in 12.
@@ -35,8 +31,6 @@ Chapters 4 and 5, plus the error contract in 12.
 | 2.3 | Distributing tools across agents, and configuring tool choice | 4 |
 | 2.4 | Integrating MCP servers into Claude Code and agent workflows | 5 |
 | 2.5 | Choosing among the built-in tools for a given job | 5 |
-
----
 
 ## Domain 3: Claude Code Configuration and Workflows, 20 percent
 
@@ -51,8 +45,6 @@ Chapters 6, 7 and 8. The record identifies this as the domain most worth drillin
 | 3.5 | Refining iteratively toward a working result | 7 |
 | 3.6 | Running Claude Code inside a CI/CD pipeline | 8 |
 
----
-
 ## Domain 4: Prompt Engineering and Structured Output, 20 percent
 
 Chapters 9 and 10, plus batch and review architectures in 8.
@@ -66,8 +58,6 @@ Chapters 9 and 10, plus batch and review architectures in 8.
 | 4.5 | Batch processing efficiently | 8 |
 | 4.6 | Multi-instance and multi-pass review architectures | 8 |
 
----
-
 ## Domain 5: Context Management and Reliability, 15 percent
 
 Chapters 11 and 12. The lightest domain by weight, and the one whose failures are hardest to see in a scenario.
@@ -80,8 +70,6 @@ Chapters 11 and 12. The lightest domain by weight, and the one whose failures ar
 | 5.4 | Managing context while exploring a large codebase | 11 |
 | 5.5 | Human review workflows and confidence calibration | 12 |
 | 5.6 | Preserving provenance and handling uncertainty when synthesising sources | 12 |
-
----
 
 ## Using this map
 

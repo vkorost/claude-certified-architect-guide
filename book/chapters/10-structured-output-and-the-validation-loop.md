@@ -6,8 +6,6 @@
 
 *The chapter also covers the two complementary structured output features (output_config.format and strict: true), schema design patterns that prevent hallucinated values, format normalization applied at extraction time rather than after it, the documented complexity limits that trigger 400 errors, property ordering behavior, the three documented cases in which output does not match the schema at all, and the triage that separates an error worth retrying from one worth escalating.*
 
----
-
 ## Scene: The Invoice That Balanced Itself
 
 Scenario 6 in the exam is structured data extraction. The guide gives it four lines: a system that pulls information out of unstructured documents, checks what it pulled against JSON schemas, keeps accuracy high, copes with the awkward documents rather than falling over on them, and hands its results to systems downstream. That is the whole of it. There is no walkthrough attached, no worked example, no annotated failure. Six scenarios exist in the bank and four are drawn for any given sitting, so a candidate may or may not see this one at all.<sup>[1]</sup>
@@ -23,8 +21,6 @@ The exam states the underlying point with no illustration at all, and states it 
 This is the central fact about tool_use as a structured output mechanism: it is a JSON contract, not a correctness contract. **The schema defines what shape the output must take. It says nothing about whether the values inside that shape are accurate representations of the source document.** Those are two completely different guarantees, and conflating them is the most consistent anti-pattern the exam tests in Domain 4.
 
 The named concept for this chapter: **tool_use as JSON contract**.
-
----
 
 ## Two Features, One System
 
@@ -47,8 +43,6 @@ Two documented incompatibilities are worth carrying. Citations cannot be combine
 Two performance characteristics follow from compilation and shape how an extraction pipeline should be built. The first request against a given schema pays extra latency while the grammar compiles, and compiled grammars are then cached for twenty-four hours from last use. The cache is invalidated by a change to the schema structure or to the set of tools in the request, and specifically not by a change to a name or a description alone.<sup>[3]</sup> A pipeline that assembles a slightly different schema per document therefore pays the compilation cost on every document and gets no benefit from the cache. A pipeline that holds its schemas fixed and varies only the document pays it once. Structured output also injects an additional system prompt describing the expected format, which raises the input token count and, when output_config.format changes, invalidates the prompt cache for that thread.<sup>[3]</sup>
 
 One constraint on schema content sits outside performance entirely. Compiled schemas are cached separately from message content and do not carry the protections that prompts and responses carry, so protected health information must not appear in schema property names, enum values, const values or pattern expressions.<sup>[3,4]</sup> For an extraction pipeline pointed at clinical documents this is a schema design rule, not an infrastructure footnote: the sensitive material belongs in the document being extracted, never in the shape being extracted into.
-
----
 
 ## Forcing the Tool Call
 
@@ -84,8 +78,6 @@ A named tool is the setting for the case where one particular extraction has to 
 Then the trap underneath both, which is that neither setting can order a sequence. A single tool_choice governs one turn. It cannot compel a chain of three tools to fire in a stated order, and the shape of the wrong answer is naming the last tool in the chain and expecting the earlier ones to have been run first. The documented pattern is to force the prerequisite on the opening turn and then process the dependent steps on follow-up turns, where their inputs actually exist.<sup>[6]</sup> Sequencing is a property of the loop, not a property of a parameter.
 
 Finally, the combination the documentation recommends explicitly and which is easy to miss because the two features live on different pages: setting tool_choice: "any" alongside strict: true on the tool definitions guarantees both halves at once, that one of the defined tools will be called, and that its input will conform to the schema.<sup>[5]</sup> The first without the second guarantees a call whose payload may still need repair. The second without the first guarantees a payload that may never arrive.
-
----
 
 ## Schema Design: Preventing the Model From Inventing Answers
 
@@ -149,8 +141,6 @@ There are two places to put the normalization rules, and the exam's answer is th
 
 This does not make post-processing useless. It makes it the right tool for transformations that need no context at all, stripping whitespace, uppercasing a country code. Anything requiring a judgment about what the source meant belongs in the extraction step, where the source is still in front of the model.
 
----
-
 ## Property Ordering: The Behavior Nobody Reads About Until It Breaks Something
 
 The structured output documentation specifies property ordering behavior that is not intuitive.<sup>[3]</sup>
@@ -178,8 +168,6 @@ Consider this schema:
 If property order in the output matters to downstream parsing logic, mark all fields as *required* (or account for this reordering in the parser). If the required/optional split is architecturally meaningful for the schema but the output consumer needs a specific order, the consumer must sort after parsing.
 
 **If order matters, mark everything required.**
-
----
 
 ## The Validation Loop
 
@@ -268,8 +256,6 @@ The loop is blind wherever the extraction contains a single unchecked value. If 
 
 This is why the redundancy is worth designing in rather than hoping for, and it is the whole rationale for the self-correction fields below. It is also the honest limit on the pattern: a validation loop raises confidence in the fields that cross-check and says nothing at all about the fields that do not. Sampling those against the source, by document type and by field rather than in aggregate, is a different mechanism belonging to Chapter 12's territory, and it is the only thing that measures what the loop cannot see.
 
----
-
 ## Self-Correction Fields: Building the Check Into the Schema
 
 The validation loop is reactive: *extract, check externally, retry if wrong*. A complementary approach is to build the self-check into the schema itself, so the extraction produces both the answer and the material for verifying it.<sup>[2]</sup>
@@ -328,8 +314,6 @@ When developers review extraction results and dismiss findings as incorrect, the
 
 (For the decision framework that distinguishes schema fixes from few-shot and from other interventions when an extraction pipeline fails, see the intervention classifier in Chapter 9.)
 
----
-
 ## When Retries Are Not the Answer
 
 Retries address format mismatches and structural errors. They do not address missing information.
@@ -362,8 +346,6 @@ There is a fourth situation which is none of the above and which the exam treats
 
 **Name the wrong fix first.** Where retries keep failing, the reflex is more of them, a longer backoff, or a larger model. The diagnosis that resolves it is the first question above, asked about the input rather than about the attempt. Where semantic checks keep failing, the reflex is a tighter schema, and a tighter schema cannot express the constraint being violated. The fix is a follow-up carrying the error.
 
----
-
 ## Complexity Limits: The 400 Error Nobody Expects
 
 Constrained decoding works by compiling schemas into grammars. Complex schemas produce large grammars, and large grammars take longer to compile. The API enforces explicit limits to protect against excessive compilation times.<sup>[3]</sup>
@@ -395,8 +377,6 @@ Tool definitions and injected format instructions occupy input tokens, and an ex
 
 The diagnostic worth carrying is the shape of the failure rather than its content, and this one is the book's reasoning rather than a documented rule. Schema complexity and general attention effects both degrade extraction uniformly: they apply to a two-page document as much as to a sixty-page one, because neither has anything to do with length. Context pressure does not behave that way. It produces a threshold. Short documents extract cleanly, long ones extract cleanly until a certain size, and past that size the misses cluster at the end. If the accuracy curve against document length has a knee in it, and if what goes missing sits at the tail rather than being scattered, the constraint is the window and not the schema. Simplifying the schema will not move it. Chapter 11 covers what does.
 
----
-
 ## Schema Compliance Without Semantic Correctness: The Core Exam Distinction
 
 The exam states the distinction as a property of the mechanism, in the knowledge statements for the task statement that owns structured output: schemas enforced through tool use eliminate syntax errors and leave semantic errors untouched. Totals that do not reconcile and values placed in the wrong field are given as the illustrations.<sup>[2]</sup> The documentation states the same boundary from the other side, in terms of what the guarantee covers: strict tool use guarantees that the tool input conforms to the declared schema and that the tool name is valid.<sup>[4]</sup> Conformance and validity, both of them properties of shape. Neither source claims anything about whether the values are true.
@@ -414,8 +394,6 @@ There is a smaller error available to a system that trusts the structural guaran
 The production architecture combines both layers. Use tool_use with strict: true to eliminate the entire class of JSON syntax failures. Use application validation to catch semantic errors the schema cannot express. Use the retry loop to correct format mismatches and structural errors in the extraction. Know when to route for human review instead of retrying.
 
 This is not a critique of structured output as a mechanism. The structural guarantee is valuable precisely because it eliminates one entire class of failures, which makes the remaining failures (semantic) easier to reason about. The error isn’t trusting tool_use. The error is trusting it for more than it guarantees. Every tool schema in the request contributes to context window cost; Chapter 11 covers the architectural implications of that budget.
-
----
 
 ## The Reflex and the Fix
 
@@ -468,8 +446,6 @@ C. Move the schema to output_config.format
 D. Increase the max_tokens parameter to give the model more room
 
 ***Correct answer: B.** tool_choice: "auto" allows the model to return conversational text instead of calling a tool. "any" or forced tool selection guarantees a tool call. strict: true controls schema validation, not whether the tool is called.*
-
----
 
 ## Key Takeaways
 

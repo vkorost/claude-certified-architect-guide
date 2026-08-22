@@ -2,8 +2,6 @@
 
 **Summary*:** Claude Code exposes three distinct mechanisms for expressing intent: **slash commands** (quick, repeated actions run in the main conversation context), **skills** (reusable capability packages that can fork into isolated sub-agent contexts), and **plan mode** (a read-only exploration phase that produces a plan before a single file is touched). Each mechanism maps to a different point on the spectrum from “I know exactly what to do, just do it” to “I have no idea what this will break, let me think first.” The exam tests when to reach for each, how the SKILL.md frontmatter fields (context: fork, allowed-tools, argument-hint) shape skill behavior, and how to combine plan mode with direct execution for complex multi-phase tasks. This chapter also covers the iterative refinement techniques named under Task Statement 3.5: TDD iteration, the interview pattern, concrete input/output examples, and the choice between batching fixes and sequencing them.*
 
----
-
 ## The Intent Spectrum
 
 Every request you send to Claude Code sits somewhere on a spectrum. At one end: a task so well-understood that the correct implementation is obvious and the scope is a single file. At the other end: a task with architectural implications, multiple valid approaches, and the kind of side effects that are impossible to enumerate in advance. Between those poles: work that is worth doing repeatedly, on different targets, in different projects, by different team members, where the procedure is known but you do not want to retype it every session.
@@ -17,8 +15,6 @@ Skills live in the middle. A skill is also a markdown file, but packaged differe
 Plan mode lives at the deliberate end. It is not a file on disk. It is a permissionMode value: "plan". With plan mode active, Claude explores the codebase, reads files, traces call graphs, and produces a written plan rather than editing anything. No changes to source until the plan is approved, with one exception the Plan Mode section below sets out. The appropriate mechanism for tasks where committing to an approach before understanding the full implications is how you create technical debt or break things at 11 PM.
 
 The named concept for this chapter is **explicit-intent execution modes**. Each mode requires the developer to be explicit about what kind of engagement they want: fast action, reusable workflow, or deliberate planning.
-
----
 
 ## Custom Slash Commands
 
@@ -37,8 +33,6 @@ What commands do not do: they do not fork the context. The command executes in t
 The current recommended format for new work is .claude/skills/<name>/SKILL.md, which supports the same slash-command invocation plus autonomous invocation by the model.<sup>[3]</sup> The .claude/commands/ directory remains valid and supported; the two formats coexist in the CLI.
 
 **Version note.** The exam guide treats commands and skills as two distinct surfaces, and that is the model this chapter follows and the model the exam scores. The product has since moved further than that. The current documentation describes custom commands as having been merged into skills: a file at .claude/commands/deploy.md and a skill at .claude/skills/deploy/SKILL.md both produce /deploy and behave the same way, existing command files keep working, and where a skill and a command share a name the skill is the one that runs. What the skill form adds is a directory for supporting files, frontmatter controlling who may invoke it, and the ability for the model to load it on its own.<sup>[1]</sup> A reader who meets that behavior in a live session is not seeing something the chapter contradicts; they are seeing a later version of the same system. Answer the exam on the two-surface model, and expect the merged one at the terminal.
-
----
 
 ## Skills: The Reusable Capability Layer
 
@@ -109,8 +103,6 @@ argument-hint: "file or directory to refactor"
 
 The body of the file follows as markdown: the skill’s instructions, rules, and any patterns the model should follow. This content becomes the system prompt for the forked sub-agent.
 
----
-
 ## Skills vs Commands: The Decision
 
 The distinction the exam tests is sharper than “use skills for complex things.” The decision criterion is whether execution produces output or exploratory context that would degrade the main session.<sup>[2]</sup>
@@ -120,8 +112,6 @@ Use a **command** when: - The action is quick and bounded. - The output is compa
 Use a **skill with context: fork** when: - The task involves exploration before action: reading many files, tracing dependencies, brainstorming and discarding approaches. - The execution produces verbose output that would pollute the main conversation context. - Tool access should be restricted to only what the task requires. - The same capability will be reused across sessions or by multiple team members with different arguments.
 
 The failure mode worth naming, and it is this book's illustration rather than a case the guide works through, is reaching for a command when the work is codebase exploration. The command runs in the main conversation. Several hundred lines of intermediate greps and file reads land there, the answer sits somewhere in the middle of them, and every subsequent turn carries the whole pile forward. The developer ends up debugging their own transcript to find the output they asked for. Task Statement 3.2 names the remedy in the abstract: the fork exists for skills whose output is bulky, with codebase analysis given as the case, and for skills whose work is exploratory, such as weighing several approaches before settling on one.<sup>[2]</sup>
-
----
 
 ## Skills vs CLAUDE.md: The Other Decision
 
@@ -140,8 +130,6 @@ The choice is wider than two options, and a scenario offering four of them is te
 On one side, the path-scoped rule. A rule under .claude/rules/ with a paths glob fires when Claude reads a file matching the pattern. Nobody invokes it. It supplies conventions that hold while working in a region of the codebase and stops loading when the work moves elsewhere. A skill fires when it is invoked, by the developer typing its name or by the model matching its description, and it supplies a procedure with steps in it. The two have converged somewhat: skill frontmatter now accepts a paths field limiting automatic invocation to matching files.<sup>[1]</sup> The trigger still differs, and the trigger is what the question turns on. Conventions that apply while editing certain files are a rule. A sequence of steps somebody decides to run is a skill.
 
 On the other side, the hook. Neither a skill nor a CLAUDE.md entry is enforcement. Both are instructions the model reads and may or may not act on. A requirement that must hold regardless of what the model decides is a hook, which is Chapter 3's territory. The distinction survives every rephrasing of the scenario: writing an instruction more emphatically, or moving it to a more specific file, changes when it loads and never changes whether it binds.
-
----
 
 ## Plan Mode
 
@@ -192,8 +180,6 @@ Two built-in subagents serve this shape and are close relatives. Explore is a re
 ### Combining plan mode and direct execution
 
 The practical pattern for large tasks: use plan mode to investigate, then switch to direct execution to implement the approved plan.<sup>[5]</sup> Consider a library migration affecting dozens of files. Plan mode surfaces all the callsites, identifies the compatibility shims needed, and outlines the migration sequence. The developer approves the sequence. Direct execution then implements the plan file-by-file with a known target state. The investigation is thorough; the implementation is bounded.
-
----
 
 ## Iterative Refinement Techniques
 
@@ -258,13 +244,9 @@ None of these techniques outranks the others. Each answers a different kind of f
 
 One wrong move recurs underneath most of these. When something is not right, the reflex is to discard the work and ask for it again from a longer description. Regeneration trades a defect whose location is known for a defect whose location is not, and it does that at full price every time.
 
----
-
 ## Composing the Mechanisms
 
 Commands, skills, and plan mode compose because they occupy different layers: commands trigger action, skills package reusable capability, and plan mode gates execution behind explicit approval. The exam tests whether you can identify which layer a given requirement belongs to. CI/CD is where these mechanisms face their hardest test: no human available, session isolated, output machine-parsed. That is Chapter 8.
-
----
 
 ## Sample Questions
 
@@ -312,8 +294,6 @@ C. Plan mode, to allow Claude to design the normalization approach before implem
 D. Increasing specificity of the prose description until all edge cases are covered.
 
 **Correct answer: B.** Concrete input/output examples are the documented most-effective technique when prose descriptions produce inconsistent results. The exam guide specifies two to three examples as the effective range.<sup>[8]</sup>
-
----
 
 ## Key Takeaways
 

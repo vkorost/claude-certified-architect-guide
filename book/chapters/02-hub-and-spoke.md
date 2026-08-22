@@ -6,8 +6,6 @@
 
 *The multi-agent research system from Scenario 3 of the exam guide serves as the recurring lens throughout.*
 
----
-
 ## The Moment Decomposition Happens
 
 The scenario is specific.<sup>[1]</sup> A coordinator agent receives a research topic. It needs to search the web, analyze source documents, synthesize findings, and generate a formatted report. Four distinct jobs. Different tool sets for each. Document analysis benefits from deep focus on a narrow set of sources without the noise of raw web results. Synthesis needs the outputs of both prior stages but must not re-run the searches itself. Report generation needs only the synthesis, clean.
@@ -17,8 +15,6 @@ One agent doing all four jobs in a single loop accumulates context from every st
 *You cannot unsee context once it is there.* The only way to keep synthesis clean is to ensure it starts with a clean context. The only way to do that is a subagent.
 
 This is the moment decomposition happens. Not when the task is complex. When different stages of the same task would contaminate each other if they shared a context.
-
----
 
 ## The Hub-and-Spoke Topology
 
@@ -60,8 +56,6 @@ The wrong fix on the adaptive arm is the diligent one. Faced with an unfamiliar 
 
 (Chapter 9’s intervention classifier uses the structural-versus-recognition distinction to separate decomposition fixes from few-shot fixes when the same domain surfaces in an exam stem.)
 
----
-
 ## The Agent Tool
 
 Subagents are invoked via the Agent tool.<sup>[4]</sup> The exam guide states the requirement as a hard one: the tool must be present in the coordinator's allowedTools for the coordinator to invoke subagents at all.<sup>[5]</sup> The current documentation frames the same field as an approval mechanism rather than a capability switch. Listing the tool in allowedTools auto-approves subagent invocations without a permission prompt; leave it out and the invocation falls through to the permission callback instead, or is denied outright under dontAsk mode.<sup>[6]</sup> The practical consequence is the guide's: a coordinator that has not been granted the tool does not delegate on its own.
@@ -69,8 +63,6 @@ Subagents are invoked via the Agent tool.<sup>[4]</sup> The exam guide states th
 One version note matters for production code and for the exam. The tool was renamed from "Task" to "Agent" in Claude Code v2.1.63. Current SDK releases emit "Agent" in tool_use blocks, but still use "Task" in the system:init tools list and in result.permission_denials[].tool_name. Checking both values in block.name ensures compatibility across SDK versions.<sup>[4]</sup> The exam guide, written against the earlier name, says Task.<sup>[5]</sup>
 
 The diagnostic worth carrying is the shape of the symptom. A coordinator that reasons through the delegation correctly, names the right specialist for the job, explains what it intends to hand over, and then invokes nothing at all is not confused. It has demonstrated in its own output that it knows the subagents exist and knows which one it wants, which rules out the missing-knowledge explanations: a system prompt that fails to list the available agents, a description field that fails to describe. Correct reasoning with zero invocations is a capability failure, and the authorization layer is where to look first. The neighboring symptom looks nothing like it. A coordinator that delegates enthusiastically to the wrong specialist has the capability and lacks the knowledge, and the fix for that one lives in the description fields.
-
----
 
 ## AgentDefinition: What You Configure
 
@@ -97,8 +89,6 @@ The optional fields give you per-agent configuration:<sup>[6]</sup>
 Two of those fields shifted underneath the exam's model in Claude Code v2.1.198 and are worth flagging as version notes rather than as corrections to the pattern. Subagents now run in the background by default, so an Agent tool call that says nothing about it launches a background subagent, and Claude asks for a foreground run when it needs the result before it can continue. Setting **background** to true forces background execution regardless of what Claude requests. A subagent also now inherits the main session's extended thinking configuration.<sup>[6]</sup> Neither change touches the routing rules the exam tests; both change what a running system does by default.
 
 The research system example makes the model field concrete. The web-search subagent runs fast and wide; you might use a lighter, faster model and accept some reduction in analysis depth. The synthesis subagent integrates findings from multiple sources and needs to reason carefully; that is a case for a more capable model. The coordinator pays the cost of an extra API call either way. You get to tune that tradeoff per agent.
-
----
 
 ## What a Subagent Inherits (and What It Does Not)
 
@@ -128,8 +118,6 @@ The guide's own instruction for the research system is to put the complete findi
 
 The failure this produces is diagnostically clean, which is why it gets tested. A subagent that receives a task description and then reports that it has nothing to work with is not describing a capacity problem. It is describing an empty envelope. Context pressure degrades output: the work gets done, and gets done worse, with details dropped from the middle and quality sliding as the window fills. A flat statement that the data was never supplied means the data was never supplied. The remedy is in the coordinator's invocation, not in the subagent's window size, and it is the same remedy in every instance: put the prior stage's output into the prompt string. Reaching instead for a larger context window, or for a shared memory the pattern does not have, treats a routing omission as a capacity shortfall.
 
----
-
 ## Context Passing: The Rule and Why It Exists
 
 The rule is simple to state. **Pass only context specific to each subagent’s task.**<sup>[5]</sup> The rationale is more interesting.
@@ -148,8 +136,6 @@ The mechanism behind that is worth stating, because it explains why the obvious 
 
 Which makes the recovery instinct the wrong one to indulge. When the report generator turns out to be unable to attribute a claim, the appealing move is to send it back upstream to ask where the claim came from, and the appealing move is unavailable: the earlier agents have returned, their contexts are gone, and re-running them re-derives findings rather than recovering the ones already made. Attribution is not something a pipeline can reconstruct at the end. It is something each stage either carries forward or drops, and the design decision that determines which is made at the first handoff, not the last.
 
----
-
 ## Parallel Execution
 
 Multiple subagents can run concurrently.<sup>[4]</sup> The mechanism is straightforward: emit multiple Agent tool calls in a single coordinator response. The SDK runs them in parallel. The coordinator receives all results before continuing.
@@ -166,8 +152,6 @@ The background field in AgentDefinition adjusts this further. From Claude Code v
 
 The detection side of parallel execution matters for orchestration code that needs to track which subagents have been invoked. Subagents are invoked via the Agent tool, so detecting subagent invocation means checking for tool_use blocks where name is "Agent". Messages originating from within a subagent’s context include a parent_tool_use_id field that links back to the parent’s invocation. In Python, content blocks are accessed directly via message.content. In TypeScript, SDKAssistantMessage wraps the Claude API message, so content is accessed via message.message.content.<sup>[4]</sup>
 
----
-
 ## Nesting and the Depth Limit
 
 This is a place where the platform has moved and the pattern has not, and the two need to be held apart.
@@ -177,8 +161,6 @@ The platform permits nesting. A subagent can spawn subagents of its own, by defa
 The pattern is a different question. Hub-and-spoke is the architecture the exam guide describes, and it puts every inter-subagent channel, all error handling, and all information routing in the coordinator.<sup>[2]</sup> A subagent that delegates on its own opens a channel the coordinator cannot see: work is dispatched, results return, and none of it passes through the hub. The observability that justified the topology is gone at exactly the depth where the tree stops being one layer deep, and it is gone silently, because the coordinator's view of a nested run is a single summary from its own direct child.
 
 So the flat architecture is now a design decision rather than a platform constraint, and it is one you enforce rather than one you inherit. If a subagent needs work done that itself warrants delegation, the coordinator decomposes that work into separate invocations and manages the dependency between them explicitly. Where a scenario hands a research subagent the Agent tool so that it can spawn search agents of its own, the objection is not that the system will refuse. It is that the coordinator has just given away the one thing it was built to hold.
-
----
 
 ## Coordinator Prompt Design
 
@@ -194,8 +176,6 @@ Dynamic selection is the coordinator’s core capability. The coordinator does n
 
 Note where that selection lives. It happens inside the coordinator, at the moment the query arrives, using the same reasoning that will handle the query. The alternative design puts a classifier in front of the agent: train something on past traffic, have it decide which specialists a request needs, and hand the coordinator a plan. That builds a second decision-making component with its own training set, its own drift, and its own failure mode, and it degrades precisely when the traffic starts to look different from the traffic it learned on, which is the moment adaptive routing was supposed to earn its place. The coordinator already reads the query. Giving it the authority to decide what the query needs is cheaper than building something else to decide on its behalf, and it keeps the decision where the observability is.
 
----
-
 ## Two Anti-Patterns the Exam Tests
 
 Both anti-patterns come straight from the exam guide's Domain 1 task statements. One is listed there as a risk, the other as the thing a well-designed coordinator does instead.<sup>[2]</sup>
@@ -210,8 +190,6 @@ The coordinator’s selection logic is not overhead. It is the mechanism by whic
 
 Both anti-patterns share a root cause: the coordinator is not reasoning about the query. It is executing a fixed procedure. The whole point of putting an LLM in the coordinator role is that it can read the query, assess what the query needs, and choose accordingly.
 
----
-
 ## Decomposing a Multi-Concern Request
 
 Decomposition is not only a multi-agent move. The same principle applies inside a single agent when one user message carries several independent concerns. "I need a refund for order #1234 and I want to update the shipping address on order #5678" is two tasks wearing one sentence. An agent that treats it as a single undifferentiated request tends to address one concern and drop the other, or to cross-wire the parameters between them.
@@ -219,8 +197,6 @@ Decomposition is not only a multi-agent move. The same principle applies inside 
 The pattern is: split the message into its distinct concerns, handle each one as a separate unit of work, and synthesize the results into one reply. Critically, the concerns share context rather than being processed in isolation. The customer's verified identity, established once, applies to both the refund and the address change; the agent does not re-verify per concern, and it does not re-fetch the customer record for each task. Shared context established once, applied across every decomposed concern, then a single unified resolution.
 
 This is distinct from the recognition-gap version of the same scenario. If an agent already handles single-concern requests well but its accuracy collapses specifically on multi-concern messages because it fails to notice the second concern, that is a pattern the model can be taught with examples, and few-shot is the cheaper fix. The decomposition pattern here is the structural answer: it applies when the workflow itself is wasteful or error-prone (re-fetching, re-verifying, sequential handling of independent work), not when the model simply needs to recognize a pattern it otherwise executes correctly. Chapter 9's intervention classifier draws this line explicitly; the discriminator is whether the stem quotes a recognition failure or a structural inefficiency.
-
----
 
 ## Three Ways to Create Subagents
 
@@ -234,8 +210,6 @@ The SDK supports three creation paths.<sup>[4]</sup>
 
 One practical note on agent creation that appears in the troubleshooting documentation: if Claude completes tasks directly instead of delegating to your defined subagent, verify that the Agent tool is in allowedTools, and verify that the subagent’s description field clearly explains when to use it. The description is how Claude matches tasks to the right subagent. A vague description produces missed delegations.<sup>[4]</sup>
 
----
-
 ## Context Isolation as a Context Window Management Tool
 
 There is a secondary benefit to subagent context isolation that Chapter 11 covers at length. The short version belongs here because it connects directly to why the research system design makes sense.
@@ -245,8 +219,6 @@ Intermediate tool calls stay inside the subagent. The parent receives only the s
 This is not just an efficiency gain. It is what makes iterative refinement feasible. The coordinator can invoke synthesis, evaluate the output, identify a gap, re-delegate to document analysis with a targeted query, receive the additional findings, and re-invoke synthesis with the enriched inputs. Each pass keeps the coordinator’s context manageable because the subagents absorb the exploration cost internally.
 
 The guide asks for a loop that keeps re-delegating until coverage is sufficient.<sup>[2]</sup> That loop is affordable only because the coordinator is not paying the context cost of each subagent’s internal work: intermediate calls and results stay where they happened, and only the final message comes back.<sup>[4]</sup>
-
----
 
 ## Session State: Resumption and Forking
 
@@ -276,8 +248,6 @@ Two repairs suggest themselves here and neither one works. The first is to resum
 
 A fork does not fix stale context. If the session you fork from contains outdated tool results, every branch inherits that staleness. Forking is a divergence tool, not a freshness tool. When the problem is stale cached results rather than wanting to explore two paths, start fresh. And a fork branches the conversation, not the working tree: edits a forked agent makes are real edits, visible to any session working in the same directory, so two branches exploring two approaches are exploring them against one filesystem.<sup>[10]</sup>
 
----
-
 ## The Research System as a Design Walkthrough
 
 Scenario 3 is worth walking through as a complete design exercise, because it is the scenario where all the concepts in this chapter intersect. The guide's own framing of it is short: a coordinator delegating to specialists that search, analyze, synthesize and report, over topics, producing cited reports. It lists the scenario's primary domains as agentic architecture and orchestration, tool design and MCP integration, and context management and reliability, which is a fair map of what a question set drawn from it can reach.<sup>[1]</sup>
@@ -301,8 +271,6 @@ The design decisions that make this work:
 
 This is hub-and-spoke applied correctly. The coordinator thinks. The subagents execute. The results flow back through the hub.
 
----
-
 ## What the Exam Actually Tests
 
 Four of the six scenarios are drawn at random for any given sitting, so the research system is a coin toss rather than a certainty; what is certain is that Domain 1 carries the largest weight of the five, and that this scenario is where its task statements are most densely exercised.<sup>[1]</sup> Three traps recur.
@@ -316,8 +284,6 @@ Ignoring provenance when resolving conflicting findings from different subagents
 The hub-and-spoke architecture questions on the exam follow a pattern. The correct answers involve a coordinator that selects subagents dynamically, passes targeted context, routes all inter-agent communication through itself, and handles failures with structured error reporting. The wrong answers involve flat architectures, full context sharing, static pipelines, and silent error swallowing.
 
 The topology is simple. The discipline required to implement it correctly is not.
-
----
 
 ## Key Takeaways
 

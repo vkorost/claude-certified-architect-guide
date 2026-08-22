@@ -2,8 +2,6 @@
 
 **Summary:** *The exam tests prompt engineering as specification writing. A precise prompt eliminates ambiguity by stating explicit acceptance criteria, providing format constraints, and decomposing complex requests into enumerated steps. Vague instructions produce vague outputs; explicit categorical criteria produce consistent, auditable outputs. Two techniques anchor this chapter: the shift from vague directives to explicit categorical criteria (the named concept), and few-shot prompting as the tool for communicating reasoning about ambiguous cases. The alert-fatigue pattern shows how noisy, low-precision review tools destroy developer trust across all rule categories, not just the noisy ones. The sequencing insight is that high false-positive categories should be disabled while their prompts are repaired, rather than running them during revision; this protects the credibility of accurate categories while improvements are made. Output format is not stylistic preference when review output feeds downstream automated tooling: it is a system contract, and the format constraint belongs in the prompt with the same precision as the content criteria.*
 
----
-
 ## The Tool That Cried Wolf
 
 The CI pipeline runs code review on every pull request. The prompt says: *“Review this code for quality issues. Be thorough and flag anything suspicious.”*
@@ -20,8 +18,6 @@ The fix is not to ask the model to “be more selective.” That is still not a 
 
 The fix is to write a specification.
 
----
-
 ## The Noise Problem Has a Name
 
 When a code review tool flags too many non-issues, developers stop reading the reports. Including the real findings. This book calls that alert fatigue. The exam guide does not use the phrase, and no Anthropic source does either, so the term is a convenience rather than a citation. The mechanism underneath it is another matter: the guide states it directly under Task Statement 4.1, and the mechanism is what gets tested.<sup>[1]</sup>
@@ -33,8 +29,6 @@ The natural first response to a noisy tool is to add a confidence qualifier: “
 The correct response is **Explicit Criteria Over Vague Instructions**: replace intentional directives with categorical, measurable conditions.
 
 That is the named concept for this chapter. Say it again: explicit criteria over vague instructions. Not “be thorough.” Not “be conservative.” A list of things to flag, with conditions precise enough that a second model (or a human) could verify whether each finding is correctly categorized.
-
----
 
 ## What Explicit Looks Like
 
@@ -74,8 +68,6 @@ Notice what the explicit version accomplishes that vague instructions cannot:
 
 The output format is also part of the specification. Four required fields per finding, in a consistent structure. This is not stylistic preference. Scenario 5 puts the review in a CI pipeline that returns feedback on pull requests, and Task Statement 3.6 names the mechanism that carries feedback there: findings emitted in a machine-parseable structure so that a later step can post them inline.<sup>[2]</sup> The comment bot in this book's example illustrates that later step. The guide does not describe a bot, and nothing here depends on one. Once any downstream process parses the output, the format is a contract, which is why Task Statement 4.2 makes output format its own demonstration target rather than folding it into the content criteria.<sup>[1]</sup>
 
----
-
 ## The Alert Fatigue Mitigation Pattern
 
 A development team ships a code review tool with six rule categories. Three of them work well: the security rules, the null-check rules, and the async error-handling rules. Three categories are noisy: style conventions that don’t match the team’s actual patterns, documentation checks that flag intentionally undocumented internal utilities, and complexity metrics calibrated for a different codebase.
@@ -90,8 +82,6 @@ The pattern: **identify which categories have high false-positive rates, disable
 
 *Do not attempt to fix all categories simultaneously.* Simultaneous repair is slower overall because the whole tool’s credibility stays low during the repair period. Sequential repair, category by category, preserves credibility for the working categories throughout.
 
----
-
 ## Severity Criteria Are Specifications Too
 
 One of the skills tested in Task Statement 4.1 is defining explicit severity criteria with concrete code examples for each severity level.<sup>[1]</sup>
@@ -101,8 +91,6 @@ Severity labels without definitions are vague instructions. “Critical,” “w
 The specification pattern is the same as for rule criteria: replace intentional labels with conditions. Not “critical means serious security issues” but “critical: findings from rules 3 and 5 (hardcoded credentials and SQL injection vectors).” The severity is determined by which rule fired, not by a separate judgment call. A finding cannot be “warning severity” if it matched rule 3, regardless of how the model might have otherwise assessed its impact.
 
 When severity must involve a contextual judgment, the specification should include examples. Not definitions, examples. “This is a critical finding” paired with a code snippet that exhibits the pattern. “This is a warning” paired with a different snippet. Examples communicate the decision boundary more precisely than prose descriptions because they anchor the label to a concrete case. This is the same mechanism as few-shot prompting, applied to the severity axis of the output.
-
----
 
 ## Few-Shot Prompting: When and How Many
 
@@ -158,8 +146,6 @@ The second is about what varies across a set. The documentation asks for example
 
 Everything above treats an example as prompt text, which is how Domain 4 frames it. There is a second channel worth knowing about. A tool definition accepts an optional `input_examples` array, and those examples are placed alongside the schema to show the model what a well-formed call looks like.<sup>[4]</sup> Chapter 4 owns that field and covers its behavior, including the fact that it is unsupported on server tools and that it is billed as prompt tokens on every request. The point here is only that the two channels are not substitutes. The `input_examples` array shapes how a tool gets called. Prompt examples shape the judgment the model applies before it decides to call anything and after the result comes back. A precision failure in review output is not repaired by adding examples to a tool definition, and a malformed tool call is not repaired by adding examples to the prompt.
 
----
-
 ## When Few-Shot Is Unnecessary
 
 Few-shot examples are not universally valuable, and the reason is narrower than a general appeal to cost. The exam guide reaches for examples on a stated condition: detailed instructions alone are already producing inconsistent results.<sup>[1]</sup> Where the instructions are producing consistent results, the condition is not met and the technique has nothing to repair.
@@ -174,8 +160,6 @@ Few-shot is valuable in extraction tasks too, particularly when documents have v
 
 The principle is the same as the code review case: examples communicate the decision boundary in contexts where prose descriptions generate inconsistent behavior.
 
----
-
 ## Decomposition as Specification
 
 Explicit criteria work at two levels: the criteria themselves, and the structure of the request.
@@ -188,8 +172,6 @@ Explicit decomposition also makes prompt iteration easier. When a category is no
 
 This connects to how the exam frames iterative refinement for interacting versus independent issues: when fixes interact, provide them together; when they are independent, handle them sequentially.<sup>[5]</sup> The same logic applies to prompt revision. Independent criteria can be tuned independently. Criteria that share ambiguous boundary regions should be revised together.
 
----
-
 ## The Format Constraint Is Not Optional
 
 The exam guide keeps criteria and output format as separate concerns, giving format its own skill bullet under Task Statement 4.2 rather than treating it as a property of the criteria.<sup>[1]</sup> The separation is worth respecting, because the two fail independently. It is easy to write detailed criteria and then leave the output format vague. The model will produce plausible-looking output. But “plausible-looking” is not “consistently structured,” and downstream tooling requires the latter.
@@ -199,8 +181,6 @@ The output format should specify: - What fields are present in each finding - Wh
 The code review example above includes all three. The finding has four fields. Severity values are enumerated. By implication, if no issues match rules 1-5, the correct output is an empty findings list, not a paragraph explaining that the code looks generally good.
 
 Structured output via tool_use (covered in Chapter 10) enforces the format constraint at the schema level. For prompts that do not use tool_use, the format constraint belongs explicitly in the prompt, specified with the same precision as the content criteria.
-
----
 
 ## What the Exam Tests
 
@@ -225,8 +205,6 @@ The patterns the exam tests are narrow and specific:
 **Prefer the root cause to the workaround.** When the model fails to recognize a case, options that accept the gap and route around it are available and wrong: post-processing the bad output away, degrading gracefully, retrying, or filtering afterwards. All of them leave the recognition failure in place and pay for it on every request. The same principle applies on the 4.1 side, where the wrong reflex is to strip the noisy findings out downstream rather than to stop generating them.
 
 **A version note on shaping output.** Older prompt engineering material controls the shape of a response by prefilling the opening of the assistant turn and letting the model continue from it. That technique is no longer available. On Claude 4.6 and later models, a request carrying a prefilled final assistant message returns a 400 error, and the documented replacement for the formatting and tone cases is an instruction in the system prompt naming what the response should and should not do.<sup>[3]</sup> An option that proposes prefilling a partial response is describing a previous generation's idiom, whatever else is right about it.
-
----
 
 ## Practice Questions
 
@@ -356,8 +334,6 @@ When the underlying rule is undefined, define it first. Few-shot built on a vagu
 Few-shot owns exactly one failure class: a consistent, recognizable pattern (or hard-to-verbalize mapping) the model fails to apply despite performing well otherwise. Every other failure class, definitional, structural, capability-latent, or variable-quality, has a different owner, and selecting few-shot for those is the exam's most common engineered wrong answer.
 
 (For the multi-pass review architecture that decomposes a large changeset into per-file passes plus an integration pass, see Chapter 8. Multi-pass review corrects for attention dilution, not for any of the five intervention failures above; it is a decomposition of the review task itself.)
-
----
 
 ## Key Takeaways
 

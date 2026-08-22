@@ -2,8 +2,6 @@
 
 **Summary:** *The agentic loop has two distinct behavioral layers: what happens inside the model call (governed by system prompts and context), and what happens around it (governed by hooks). System prompts are probabilistic. Hooks execute as code. The exam tests whether you can correctly identify which layer a business requirement belongs to, and the answer determines whether your agent’s compliance is a suggestion or a guarantee. This chapter defines the complete hook event taxonomy for both Python and TypeScript SDKs, explains the semantics of PreToolUse and PostToolUse in depth, covers priority rules when multiple hooks apply, and establishes the “Prompt or Hook?” decomposition framework that underlies every enforcement question in the exam.*
 
----
-
 ## The Scene That Starts Every Discussion
 
 A customer support agent processes refunds. The product requirements document says the agent must never approve a refund above five hundred dollars. So someone writes this into the system prompt:
@@ -21,8 +19,6 @@ Now consider the hook version. A ***PreToolUse*** callback fires every time the 
 Which hook fires, and when, is the whole of the mechanism, and it is worth stating plainly before anything else in this chapter, because the two hooks that bracket a tool call are the most confused pair of objects in Domain 1. PreToolUse intercepts an outgoing tool call and can stop it: that is where policy is enforced. PostToolUse intercepts a tool result on its way back and can rewrite it: that is where data is normalized. A rule that has to prevent something must run before the thing it prevents. A hook that fires after process_refund returns can log the violation, alert on it, and file it neatly, and the money has already moved.<sup>[2]</sup>
 
 The distinction between these two implementations is the central argument of this chapter. Call it the **Prompt or Hook boundary**: the architectural decision point where you determine whether a business requirement belongs inside the model call (as context) or outside it (as code).
-
----
 
 ## How Hooks Fit the Loop
 
@@ -42,8 +38,6 @@ options.hooks = {
 The matcher field filters which callbacks fire, and it does not always mean what a reader who assumes "regex" expects. The characters in the string select the evaluation path. A matcher containing only letters, digits, underscores, hyphens, spaces, commas and pipes is compared as an exact string, or as a list of exact strings separated by pipes or commas: "process_refund" matches that tool and nothing else, "Write|Edit" matches either file modification tool exactly. A matcher containing any other character is evaluated as an unanchored regular expression, so "^Notebook" matches every tool whose name begins with Notebook, and "Edit.*" matches NotebookEdit as well as Edit. Anchor with ^ and $ when a whole-string match is what you meant. An empty matcher, an asterisk, or no matcher at all fires for every event of that type.<sup>[4]</sup>
 
 The consequence that catches people sits at the boundary between the two paths: "mcp__" contains only exact-match characters, so it is compared against tool names as a literal and matches nothing at all. Reaching every tool on a server means forcing the regular-expression path, as in "mcp__support_db__.*". Matching against the tool name is also specific to tool events. Notification hooks match the notification type, subagent hooks the agent type, and several events, Stop and UserPromptSubmit and PostToolBatch among them, accept no matcher and run every time they fire.<sup>[4]</sup>
-
----
 
 ## The Complete Taxonomy
 
@@ -87,8 +81,6 @@ The TypeScript SDK adds hooks for session, workspace and message lifecycle event
 - **TeammateIdle**, **WorktreeCreate** and **WorktreeRemove**: a workspace teammate goes idle, and git worktree lifecycle
 
 Note: SessionStart and SessionEnd can be registered as SDK callback hooks in TypeScript. In Python, they are only available as shell command hooks defined in settings files like .claude/settings.json.<sup>[10]</sup>
-
----
 
 ## PreToolUse in Depth: Permission Decisions
 
@@ -140,8 +132,6 @@ The model reads the reason, understands the constraint, and calls escalate_to_hu
 
 The continue_ field (spelled **continue** in TypeScript, **continue**_ in Python to avoid the reserved keyword) determines whether the agent keeps running after the hook completes. When False, the agent stops after the hook fires, regardless of other pending tool calls or turns. Use this to halt execution entirely on critical violations rather than just blocking the immediate tool call.<sup>[15]</sup>
 
----
-
 ## PostToolUse in Depth: Output Transformation
 
 **PostToolUse** *fires **after** the tool returns but **before** the model sees the result.* Two output fields control what the model receives:<sup>[6]</sup>
@@ -173,8 +163,6 @@ def normalize_timestamps(tool_name, tool_input, tool_output):
 
 This is Task Statement 1.5 in concrete form. The skill the guide names is normalizing heterogeneous formats from different tools before the agent processes them, and the ordering inside that phrase is the whole point: the reconciliation happens outside the model, or it happens inside it. Normalization in a hook is not an optimization. It moves a correctness concern out of the layer that reasons probabilistically and into the layer that does not.<sup>[2]</sup>
 
----
-
 ## Priority Rules: When Multiple Hooks Apply
 
 When multiple hooks register for the same event and the same call triggers more than one of them, the **SDK runs all matching hooks in parallel**. Completion order is non-deterministic. Write each hook to act independently. Do not design hooks that depend on another hook having already run.<sup>[17]</sup>
@@ -191,8 +179,6 @@ The same ordering reaches past the hooks themselves. Hooks are the first step of
 
 That ordering also draws the line between the two ways to gate a tool call, and the line is not about strictness. A rule that can be written down as a pattern over a tool name and its arguments belongs in the permission rules, declaratively, in a settings file: shorter, auditable by someone who does not read the codebase, no code to maintain. A rule whose answer depends on something no pattern can see, session state, an account balance, the result of an earlier call, belongs in a PreToolUse hook, because arriving at the decision means running a program. Neither replaces the other, and the mistake runs in both directions: reaching for a hook to express a fixed command pattern, or reaching for a rule to express a condition that has to be computed.<sup>[19]</sup>
 
----
-
 ## Asynchronous Hooks: Side Effects Without Blocking
 
 By default, the agent waits for each hook to return before proceeding. This is the correct behavior when the hook’s output influences the operation: you need the permission decision or transformed output before the loop continues.
@@ -208,8 +194,6 @@ return {
 
 The constraint is absolute: **async hooks cannot block, modify, or inject context**. The agent has already moved on. Async mode is for fire-and-forget side effects only. If your hook needs to influence what happens next, it must be synchronous.
 
----
-
 ## MCP Tool Names in Hook Matchers
 
 MCP tools follow the naming pattern mcp__<server>__<action>. A tool called get_customer on an MCP server named support_db is addressed as mcp__support_db__get_customer throughout the hook system.<sup>[21]</sup>
@@ -217,8 +201,6 @@ MCP tools follow the naming pattern mcp__<server>__<action>. A tool called get_c
 This pattern matters for matcher design, and it is where the two evaluation paths from earlier in the chapter bite. Consider a hook that should audit every MCP tool call. The matcher has to be forced onto the regular-expression path: "^mcp__" does it with an anchor, "mcp__.*" does it with a wildcard. "mcp__" on its own does neither, because it contains only exact-match characters and is therefore compared against tool names as a literal, matching none of them. Narrowing to one server takes "mcp__support_db__.*" for exactly the same reason. Only the fully qualified name, "mcp__support_db__process_refund", works as written, because a single named tool is the case an exact-string matcher exists for.<sup>[4]</sup>
 
 The full treatment of MCP server configuration, including how servers are defined and how tools are discovered, is in Chapter 5. The hook matcher syntax is established here.
-
----
 
 ## The Prompt or Hook Boundary
 
@@ -249,8 +231,6 @@ None of which retires the hook. Tool-internal enforcement protects one tool; a h
 The redirect at the end of a block has a second half, and Task Statement 1.4 is specific about it. Denying a call and pointing the model at escalate_to_human is where enforcement ends and handoff begins, and a handoff carrying only a pointer is not a handoff. The human receiving the escalation does not have the conversation transcript. What the escalation call has to carry is the material that lets someone act without reading anything: the customer identity, the root cause, the amount or scope in question, and a recommended action. Persisting the transcript somewhere and passing along a reference to it moves the reading problem rather than solving it, and it is a durable wrong answer precisely because it looks like diligence.<sup>[22]</sup>
 
 The same asymmetry governs when to escalate. Escalation is the right move once the authorization boundary is known to have been crossed, and it is right at that moment rather than after an attempt has been made and rejected: an attempt the agent already knows is unauthorized is not a check, it is a violation with a retry attached. Escalation is not the right move where the boundary was never the problem. If the agent has established eligibility and explained the charges and then the backend call fails, the resolved work is real. Handing back what was resolved, saying plainly that the last step did not complete, and offering the next options preserves that value. Discarding all of it because the final call failed does not.<sup>[22]</sup>
-
----
 
 ## Decomposing Requirements: Worked Examples
 
@@ -286,8 +266,6 @@ The Prompt or Hook boundary is the named concept. Decomposition is the skill. He
 
 The hook is not smarter than the model on questions of warmth. Stop before you write one that tries to be.
 
----
-
 ## SubagentStart and SubagentStop
 
 The SubagentStart and SubagentStop events connect the hook system to the multi-agent patterns from Chapter 2. When the coordinator spawns a subagent using the Agent tool, SubagentStart fires. When the subagent completes, SubagentStop fires.
@@ -295,8 +273,6 @@ The SubagentStart and SubagentStop events connect the hook system to the multi-a
 These hooks give the parent orchestrator visibility into parallel subagent activity without having access to the subagent’s internal context. A SubagentStop hook can aggregate results, detect failures, or trigger coordinator logic when all parallel subagents have completed.<sup>[7]</sup>
 
 One practical implication: subagents do not automatically inherit parent agent permissions. If the parent agent has a PreToolUse hook auto-approving certain tools, those hooks apply to the parent’s tool calls. The subagent runs in its own execution context with its own permission checks. When multiple subagents are spawned in parallel, each one may independently request permissions. Handle this by configuring permission rules that apply at the subagent session level, or use PreToolUse hooks scoped to run inside subagent sessions using the agent_type field on the hook input.<sup>[23]</sup>
-
----
 
 ## The PreCompact Hook
 
@@ -315,8 +291,6 @@ def archive_transcript(hook_input):
     write_to_audit_log(transcript, trigger=trigger)
     return {"async_": True}
 ```
-
----
 
 ## Configuring Hooks: The Registration Pattern
 
@@ -355,8 +329,6 @@ What happens when a callback overruns is also event-specific, and PreToolUse is 
 
 Hook event names are case-sensitive. PreToolUse works. preToolUse does not register correctly.<sup>[25]</sup>
 
----
-
 ## What the Exam Specifically Tests
 
 The exam draws from Task Statements 1.4 and 1.5. Both task statements are built around the same conceptual axis: knowing when to put business logic in a prompt versus a hook.
@@ -387,8 +359,6 @@ D. Use tool_choice: "any" to force the model to call a tool on every turn.
 ***The correct answer is B.** The requirement is a deterministic prerequisite gate. Hook-based enforcement is the correct mechanism. Option A fails because the problem is not vague instructions: it is probabilistic enforcement. Option C misapplies PostToolUse (it fires after verify_access, not before write operations). Option D forces tool use but does not address the ordering requirement.*
 
 *When hooks are absent, tool descriptions become the only routing mechanism. Chapter 4 is about getting that mechanism right.*
-
----
 
 ## Key Takeaways
 

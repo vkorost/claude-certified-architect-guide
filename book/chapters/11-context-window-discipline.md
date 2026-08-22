@@ -2,8 +2,6 @@
 
 **Summary:** *The context window is finite, its middle is unreliable, and its contents decay in quality before they run out of room. Two distinct effects drive that. Position: information in the center of a long input is less likely to reach the output than information at either end. Volume: accuracy and recall fall as the token count climbs, whatever the ceiling happens to be. Both have architectural consequences, and this chapter works through them: where critical facts belong, how to choose a carry-forward mechanism when history has to be compressed, what actually survives compaction and what only appears to, how tool output and tool schemas accumulate, and how to design sessions that outlive a single window. The case facts block is the standing answer to progressive summarization: transactional facts extracted into a persistent block carried in every request, outside the history being summarized. It is one of several carry-forward mechanisms, and most of the difficulty is in choosing among them. Tool output accumulation is the dominant growth cost in long sessions. Tool schemas are the dominant fixed cost, which is why tool search now withholds them until they are needed. Subagent delegation keeps a coordinator lean by absorbing exploration transcripts elsewhere and returning only the finding. Several reflexes recur and none of them works, two of them chronically: raising the ceiling when the problem is degradation, and forking a session when the problem is staleness.*
 
----
-
 ## The Session That Ate Its Own Memory
 
 The exam guide states the risk in a single line and then leaves it alone. Compress a conversation repeatedly and the figures, the dates, and the things the customer specifically asked for come back as generalities.<sup>[1]</sup> That is the whole of it. The guide does not work an example.
@@ -19,8 +17,6 @@ By the tenth turn, after the second pass, it is four words: “Customer has a bi
 The name, the account, the order, the exact dollar figures, the promotion code, the tenure, the priority rating: all gone. Not corrupted. Not misread. Gone through the ordinary and entirely correct operation of a summarizer making room for new turns.<sup>[1]</sup>
 
 This is the problem. The context window is not just a size limit. **It is a degradation engine when left unmanaged.** And the model cannot tell you that it lost something, because it no longer knows the something existed.
-
----
 
 ## The Lost-in-the-Middle Effect
 
@@ -46,8 +42,6 @@ The two effects also respond to different interventions. Position is fixed by or
 
 Both effects are real. Plan for both.
 
----
-
 ## Progressive Summarization Risk
 
 Summarization is useful. It compresses verbose history into manageable context, extends how long a session can run, and reduces the token cost of subsequent turns. The problem is not summarization. The problem is summarizing the wrong things.
@@ -59,8 +53,6 @@ For a conversational system where the outcome is “*resolve this customer’s b
 The progressive nature of the risk makes it worse. A single summarization pass might preserve enough. Two passes almost certainly will not. By the third pass, even the category might collapse into something so vague (“billing matter under review”) that the agent cannot act on it at all.
 
 The detection problem is quiet. The model does not announce that it has lost critical facts. It continues to respond confidently, often substituting “typical patterns” for the specific case details it no longer has. A support agent that has lost the order number will ask for it again, or worse, attempt to operate without it, producing plausible-sounding but factually wrong responses.
-
----
 
 ## The Case Facts Block
 
@@ -96,8 +88,6 @@ The structure matters. Plain prose facts are easier to summarize into vague cate
 For multi-issue sessions, each distinct issue gets its own structured entry in the block, kept as a separate context layer from the summarized conversation history.<sup>[1]</sup> The layering is the point. One block holding a fused account of three issues is a summary already, and it will lose the boundaries between them before it loses anything else.
 
 The case facts block is a position and structure decision, not a prompt instruction. Prompt instructions asking the model to “*remember important details*” will not survive compaction. The block survives compaction because it lives outside the history being compacted, injected afresh into each request from persistent storage.
-
----
 
 ## Choosing the Carry-Forward Mechanism
 
@@ -151,8 +141,6 @@ That is not a capacity failure and no capacity mechanism will touch it. The inst
 
 The diagnostic is the token count. Degradation with the window near full is a volume problem. Degradation with the window a fraction full is a weighting problem. They present almost identically in the transcript and they take opposite fixes.
 
----
-
 ## What Consumes Context in the SDK
 
 Understanding where context goes is prerequisite to managing it. The context window is everything available to Claude during a session, and it does not reset between turns within that session: the documentation is explicit that everything accumulates.<sup>[3]</sup> The sources are several and not all of them are obvious.
@@ -172,8 +160,6 @@ The implication: trim tool outputs to relevant fields before they accumulate. A 
 The API offers a server-side version of the same idea for callers working below the SDK. Context editing includes a tool-result clearing strategy that removes the oldest tool results once the conversation passes a configured threshold, replacing each with placeholder text so the model knows something was there.<sup>[5]</sup> The clearing happens on the server before the prompt reaches the model, and the client keeps its own full history unmodified.<sup>[5]</sup> Note the ordering rule that follows from this: clearing works oldest-first and chronologically, which means it is a mechanism for discarding what has already been processed, not a mechanism for discarding what is merely large.
 
 Prompt caching handles the static pieces. Content that stays the same across turns, including the system prompt, tool definitions and CLAUDE.md, is automatically prompt cached, which reduces cost and latency for repeated prefixes.<sup>[3]</sup> It is worth being precise about what that buys, because the two things are routinely conflated. Caching changes what those tokens cost, not whether they count.<sup>[2]</sup> A cached prefix occupies exactly as much of the window as an uncached one. Caching is a bill-reduction mechanism that looks like a capacity mechanism, and treating it as the latter is how a session that appeared affordable turns out to have been full all along.
-
----
 
 ## Automatic Compaction and the compact_boundary Event
 
@@ -195,8 +181,6 @@ The *PreCompact* hook fires before compaction and is where the full transcript c
 
 One further behavior is easy to miss and shows up as a puzzling latency and cost change rather than as an error. The summarization request inherits the session's own extended thinking configuration, so a session running with thinking enabled reasons its way through the summary too. That affects how the summary is produced and leaves the session's settings unchanged afterwards.<sup>[6]</sup>
 
----
-
 ## What Survives Compaction
 
 “Put it in CLAUDE.md and it survives” is the right instinct and an incomplete rule. What actually determines survival is not the file a rule lives in. It is *how the rule was loaded*, and specifically whether it entered the request as standing configuration or entered the message history as a message.
@@ -215,8 +199,6 @@ Discovered tool definitions sit at the boundary. When the conversation is long e
 
 The generalization worth carrying out of this section: *durability is a property of the loading mechanism, not of the content*. A critical rule written into a conditionally loaded file is a critical rule with a conditional lifetime, and no amount of emphasis inside the file changes that.
 
----
-
 ## Context Degradation Symptoms
 
 Context degradation is insidious because the model does not report it. It degrades gradually and quietly, substituting general knowledge for specific session findings as the specific findings become less accessible. The exam guide names two symptoms for extended sessions and it names them together, which is the useful part: the model starts answering inconsistently, and it starts referring to what is typical of this sort of system instead of to the classes it actually found earlier.<sup>[1]</sup>
@@ -231,8 +213,6 @@ The second symptom deserves more weight than its length here suggests, because i
 
 Both symptoms are recognizable in practice. Both are architectural failures before they are model failures. The architecture let the context fill without mitigation, and the model’s reliability degraded as a result.
 
----
-
 ## Four Reflexes That Do Not Fix Degradation
 
 Before the mitigations that work, the ones that present themselves first. Each is a reasonable response to a misreading of the symptom, and each is the plausible wrong answer in a scenario that describes the symptom accurately.
@@ -246,8 +226,6 @@ Before the mitigations that work, the ones that present themselves first. Each i
 **Instruct the model to remember.** In a stateless request, an agent that cannot recall something said two turns ago is not forgetting. Whether prior turns are visible at all is a property of what the caller puts in the request, and the exam guide flags the discipline directly, in the form of passing the full conversation history along with each subsequent request so the exchange stays coherent.<sup>[1]</sup> If the history is not in the array, no instruction in the system prompt will retrieve it, because the system prompt cannot make the model see something that was not sent. The symptom is distinctive and worth recognising by its shape rather than its content: it appears immediately, in short sessions, in early testing, well before any window could plausibly be under pressure, and it reproduces uniformly across every user rather than clustering around particular operations. Failures that are that even are configuration failures. A genuine state bug would be lumpier.
 
 The common thread is that three of the four treat a degradation problem as a capacity problem and the fourth treats an assembly problem as a memory problem. The diagnostic questions are small and worth asking in order: how full is the window, was the material ever sent, and is what is already loaded worth keeping?
-
----
 
 ## Mitigations
 
@@ -291,8 +269,6 @@ When the goal is to understand how something is structured across a set of files
 
 The distinction that selects between them is what is being asked for. Architectural understanding has a structural entry point and rewards using it. Retrieval of a specific fact, where the fact could be anywhere, is the case where a broad search is appropriate. Applying the broad sweep to an architectural question is the common error, and it is the error that produces a full window and a shallow answer at the same time.
 
----
-
 ## Crash Recovery Manifests
 
 Long-running agent sessions introduce a failure mode that shorter sessions don’t have: the session can crash after significant work has been done, and none of that work is automatically recoverable.
@@ -317,8 +293,6 @@ The general rule underneath both: for state, address the record directly. Search
 
 Designing for crash recovery is designing against the assumption that sessions are atomic. For any agent session that runs for more than a few minutes and does meaningful work, that assumption will eventually be wrong. When the crash originates from a subagent failure, Chapter 12’s error propagation patterns govern how that failure is communicated before the session terminates.
 
----
-
 ## Context Window Sizes
 
 The size of the ceiling matters when the work is large.
@@ -338,8 +312,6 @@ Coverage is uneven and splits along model lines rather than by recency. Several 
 Two things context awareness is not. It is not a relevance judgment, so it cannot tell the model which of the facts it holds still matter. And it is not a mitigation, so it does not slow accumulation or improve recall. It reports a quantity. What the agent does with the report is still an architecture question.
 
 The model selection decision is therefore also a context architecture decision, along two axes rather than one: whether the window accommodates the work, and whether the model can see how much of it is left.
-
----
 
 ## MCP Server Context Cost and Tool Search
 
@@ -366,8 +338,6 @@ Schemas are the fixed cost. Tool results are the variable one, and the SDK enfor
 A tool result larger than 25,000 tokens is not truncated and not silently dropped. The full output is written to a file, and the tool result the agent receives is replaced with an error naming that file path, so the agent can read the output back in portions.<sup>[9]</sup> A warning fires earlier, at 10,000 tokens, and that threshold is fixed.<sup>[9]</sup> The limit itself is adjustable through an environment variable, and a server author can raise the threshold for one specific tool by annotating it in the tool listing, up to a ceiling of 500,000 characters, which is the right move for a tool whose output is inherently large and inherently necessary, such as a full database schema.<sup>[9]</sup>
 
 Two things about this are worth carrying. The first is that the fallback is *persist to disk*, not discard: the data still exists and the agent has been handed a pointer to it, which converts an unbounded context cost into a bounded read the agent can make selectively. That is the same trade as tool search, applied to results instead of schemas, and it is the same trade as a scratchpad, applied in the other direction. The second is that the annotation and the environment variable govern different scopes, and both apply only to text. A tool returning image data stays subject to the token limit regardless.<sup>[9]</sup>
-
----
 
 ## Exam Sample Questions
 
@@ -399,8 +369,6 @@ C. Set tool_choice to "none" so that tool calls do not occur unnecessarily.
 D. Move to a model with a 1M-token window.
 
 ***Correct answer: A.** Withholding MCP schemas until they are needed is the default behavior, so schemas appearing in every request is a symptom that the default is not in effect. Several documented conditions produce that fallback, including unsupported models, certain hosting platforms, a non-first-party base URL, and an explicit override. B removes servers the agent legitimately needs. C prevents tool use altogether, which defeats the coordinator's purpose. D raises the ceiling without reducing the per-request cost, and the per-request cost is what was measured.*
-
----
 
 ## Key Takeaways
 

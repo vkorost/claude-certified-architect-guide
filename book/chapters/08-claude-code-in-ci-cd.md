@@ -2,8 +2,6 @@
 
 **Summary:** *Running Claude Code in a CI/CD pipeline requires a different mental model than running it interactively. There is no human available to answer permission prompts, approve tool use, or intervene when something hangs. The configuration choices that are optional in a terminal session become load-bearing in a pipeline. This chapter covers the flags, the session architecture, and the cost controls that make Claude Code a reliable CI participant: the **-p** flag for non-interactive mode, --output-format json with --json-schema for machine-parseable output, the permission modes that let a session run unattended and what they do not switch off, session context isolation as the core architectural principle, turn and dollar caps enforced inside the process rather than by the job runner, and the Message Batches API for latency-tolerant workloads. The central anti-pattern is same-session self-review: a generation session asked to review its own output retains all prior reasoning context and cannot deliver an independent assessment. Review-session isolation, where the reviewing Claude invocation is a completely separate process with no shared session ID, is the architectural fix. The --bare flag enforces reproducibility by disabling every kind of local auto-discovery, from hooks and skills through to memory files, so pipeline behavior is consistent across every machine in the fleet.*
 
----
-
 ## The Scenario That Broke a Pipeline
 
 Consider a CI pipeline built to run automated code review on every pull request. The pipeline works like this: first, Claude Code generates implementation code in one step. Then, in the very next step, the pipeline calls Claude Code again in the same session to review what was just written.
@@ -13,8 +11,6 @@ The results look fine. Claude approves the code. Issues that a human reviewer wo
 The pipeline called --resume with the original session ID, thinking continuity was a feature. *It was the bug.* *The reviewer “approves” code it just wrote because it has already committed to the reasoning that produced that code.*
 
 The fix is architectural. The fix is what this chapter calls **review-session isolation**.
-
----
 
 ## The Flag That Everything Else Depends On
 
@@ -46,8 +42,6 @@ claude -p --bare "Summarize the build log" --allowedTools Read
 Bare mode is recommended for scripted and SDK calls. The documentation notes it will become the default for -p in a future release.<sup>[2]</sup>
 
 One consequence surprises people the first time they hit it. Bare mode does not read OAuth credentials or the system keychain, so a subscription login that works in a terminal will not authenticate a bare run. Set ANTHROPIC_API_KEY in the environment, or supply an apiKeyHelper through the settings passed on the command line. Bedrock, Google Cloud’s Agent Platform, and Microsoft Foundry keep reading their own provider credentials as usual.<sup>[2]</sup> Bare mode also narrows the starting tool surface to Bash, file read, and file edit; anything else, including MCP servers and custom agents, has to be handed in by flag.<sup>[2,3]</sup>
-
----
 
 ## Structured Output in CI
 
@@ -86,8 +80,6 @@ Provide results as structured JSON." \
 ```
 
 The downstream script receives a JSON object, not text. It can iterate over issues, filter by severity, and post each one as a comment against the relevant file. Producing findings a pipeline can post as inline comments without parsing prose is the stated purpose of pairing the two flags, and it is the form the exam expects.<sup>[1]</sup>
-
----
 
 ## Review-Session Isolation
 
@@ -132,8 +124,6 @@ Review this updated diff and report ONLY issues that are new or were not address
 
 The reviewer still runs in an isolated session. But it is given enough context to know what has already been flagged. The isolation principle is preserved; the duplicate-comment problem is not.
 
----
-
 ## Multi-Pass Review
 
 Review-session isolation solves the bias problem: the reviewer does not share the generator's reasoning context. Multi-pass review solves a different problem: attention dilution across files.
@@ -147,8 +137,6 @@ The same decomposition answers a different-looking complaint: findings misfiled 
 This is orthogonal to the multi-instance pattern described above. Three review architectures exist for three distinct failure modes, and the exam expects candidates to distinguish them cleanly. Multi-instance review (independent reviewer, no shared context) corrects for generation-context bias: the generator's retained reasoning would corrupt a same-session review. Multi-pass review (per-file local passes plus cross-file integration) corrects for attention dilution: a single pass spread over many files, or many concerns, loses depth. Second-pass self-critique, the evaluator-optimizer pattern in Chapter 12, corrects for per-case quality variance: the same draft checked against a completeness rubric before delivery. Reviewer identity, reviewer scope, and output quality control are three separate axes. Different failures, different architectures. The stem tells you which failure is in play; match the architecture to it.
 
 A further pass type belongs to this task statement and is easy to miss, because it changes nothing about how the review is split. A verification pass can have the model report a confidence level beside each finding, which turns a flat list into something a pipeline can route.<sup>[1]</sup> That is the structural answer to a reviewer that is precise but quiet: tuned to suppress anything uncertain, it loses real bugs with the noise. The fix is not a gentler suppression instruction. It is to report everything found, tagged, and decide what surfaces in a stage not also responsible for finding things.
-
----
 
 ## CLAUDE.md in CI
 
@@ -170,8 +158,6 @@ The following is this book’s illustration of what that looks like written down
 The last two points address the failure the exam calls out by name in test generation: suggested tests that duplicate scenarios the suite already covers, and generated tests that reinvent fixtures the project already provides. Two remedies are named for it, and they operate at different times. Putting the existing test files into the session's context tells the reviewer what has already been tested on this run. Documenting the standards, the criteria for a test worth having, and the available fixtures in CLAUDE.md raises the quality of what gets generated in the first place and cuts the low-value output at its source.<sup>[1]</sup>
 
 That timing distinction answers a scenario worth naming: developers reject the generated tests as trivial, and the instinct is a second Claude call that scores them and drops the weak ones. A scenario that also forbids added latency and pipeline changes eliminates that instinct by its own cost. CLAUDE.md acts before generation and changes what the first call produces rather than filtering what it produced.<sup>[1]</sup> Document what exists. The CI session will use it.
-
----
 
 ## Permission Mode for CI
 
@@ -206,8 +192,6 @@ A CI invocation with the caps and the tool surface stated explicitly:
 ```
 
 Under dontAsk, --allowedTools is the definition of what the session may do without asking, and everything outside it that would have prompted is denied instead. That is what makes the pair an unattended session with a boundary rather than an unattended session with a hope.
-
----
 
 ## GitHub Actions Integration
 
@@ -273,8 +257,6 @@ The fix is to skip discovery entirely and then load exactly what is needed. --ba
 
 This is where the system prompt flags earn their distinction, because the wrong one silently deletes behavior a CI reviewer depends on. The flag --system-prompt **replaces the default system prompt entirely**, while --append-system-prompt **adds to it**, and --append-system-prompt-file does the same from a file.<sup>[3]</sup> A review that has stopped honoring documented standards, or stopped reading files it obviously should have read, is very often a --system-prompt where an append belonged: the replacement discarded the default prompt along with the file-navigation guidance built into it. Granting more tools misreads the symptom. The tools were never denied. The instructions for using them were.
 
----
-
 ## The Message Batches API
 
 Some CI workloads are not blocking. A nightly technical debt report, a weekly security audit, test coverage analysis run overnight: none of these block a developer who is waiting to merge. They are **latency-tolerant**. They have a deadline measured in **hours**, not seconds.
@@ -309,8 +291,6 @@ Nightly reports are batch. Nobody is waiting. The report appears in the morning.
 
 The exam question in the guide makes this exact distinction: a blocking pre-merge check and an overnight technical debt report. The proposal is to switch both to batch for the cost savings. The correct answer is to switch only the overnight report. The pre-merge check stays synchronous because it is a blocking workflow.<sup>[1]</sup>
 
----
-
 ## Configuration Checklist for CI
 
 Putting the pieces together, a production CI configuration for Claude Code review should have:
@@ -326,8 +306,6 @@ Putting the pieces together, a production CI configuration for Claude Code revie
 - **A permission mode chosen deliberately:** dontAsk with an explicit allow list for a locked-down run, bypassPermissions only in a genuinely disposable container, and in either case an expectation that deny rules, ask rules and hook denials still apply.
 - **Prior review findings in context** when re-running after new commits. Instruct the session to report only new or unaddressed issues.
 - **Message Batches API for latency-tolerant workloads.** Synchronous for blocking checks.
-
----
 
 ## What the Exam Tests Here
 
@@ -348,8 +326,6 @@ Three facts carry most of the weight here, and they are worth holding as a set b
 3. Message Batches API for latency-tolerant workloads; synchronous for pre-merge checks.
 
 The configuration choices here assume the prompt is precise enough to make review findings actionable. Chapter 9 is where that assumption gets tested.
-
----
 
 ## Key Takeaways
 

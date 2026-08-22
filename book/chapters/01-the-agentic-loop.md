@@ -2,8 +2,6 @@
 
 **Summary:** *Every agentic system built on Claude reduces to the same primitive: a loop that runs until **stop_reason** signals termination. The model does not decide to stop. The **stop_reason** field in the API response drives termination logic in the orchestrator. This chapter establishes that mental model, then builds the complete operational picture: how turns accumulate into sessions, what each stop_reason value means and demands from your code, how **ResultMessage** subtypes convey termination state in the SDK, and which knobs (**max_turns, max_budget_usd, effort, permissionMode**) give the orchestrator governance over a running loop. The chapter closes by naming the two **anti-patterns** the exam tests repeatedly: parsing natural language output to detect task completion, and substituting iteration caps for proper stop_reason-driven termination logic. Both failures stem from the same misunderstanding. The model does not signal completion in prose. It signals it in a field.*
 
----
-
 ## The Scene That Explains Everything
 
 Two functions. One field. The contrast between them is the whole chapter.
@@ -33,8 +31,6 @@ The correct pattern reads a typed field. **stop_reason** is part of every succes
 
 Name this: **stop_reason-driven termination**. The orchestrator loop continues when stop_reason is "**tool_use**" and exits when **stop_reason** is anything else. The exit branch may require different handling depending on which value arrived. But the fundamental control structure is keyed on that field, not on parsed text.
 
----
-
 ## The Loop at a Glance
 
 Before the values, the shape. Every agent session follows the same cycle.<sup>[4]</sup>
@@ -54,8 +50,6 @@ One property of that cycle deserves naming, because it is the property most ofte
 The test that separates them is mechanical. Change the content of a tool result and watch whether the next call changes. A decision tree branches on conditions its author wrote down in advance, so it walks the same path whenever those conditions hold, whatever the payload happens to say. A fixed sequence does not branch at all. Model-driven selection has no path written down anywhere. The result is appended to the conversation, the model reads the accumulated history, and the next tool call falls out of that reading.<sup>[1]</sup>
 
 Which is why the appending matters as much as the reasoning. A result that never enters the conversation cannot influence anything. An architecture that reduces tool output to a status flag before handing it back has discarded the material the model was supposed to reason over, and what remains is a decision tree with a language model bolted onto the front of it.
-
----
 
 ## The stop_reason Values
 
@@ -130,8 +124,6 @@ async function runLoop(prompt: string): Promise<string> {
 
 The TypeScript SDK exposes termination state through ResultMessage.subtype, which provides a different vocabulary from the Messages API’s stop_reason. The two layers are related but distinct. The next section addresses the SDK layer specifically.
 
----
-
 ## ResultMessage and SDK Termination State
 
 When using the Agent SDK, the loop’s termination state arrives in a **ResultMessage**, the final message emitted when the loop ends. The **subtype** field is the primary way to check termination state.<sup>[4]</sup>
@@ -151,8 +143,6 @@ The result field (final text output) is only present on the "success" subtype. A
 A small note the docs flag explicitly: trailing system events such as **prompt_suggestion** can arrive after the ResultMessage. Iterate the stream to completion rather than breaking on the result.<sup>[4]</sup>
 
 The ResultMessage also includes a **stop_reason** field (*str | None in Python, string | null in TypeScript*) indicating why the model stopped generating on its final turn. On error subtypes, stop_reason carries the value from the last assistant response before the loop ended. The two fields serve complementary purposes: subtype tells you whether the SDK loop succeeded or failed; stop_reason tells you what the model was doing when it ended.
-
----
 
 ## The tool_result Block Placement Rule
 
@@ -188,8 +178,6 @@ Mixing text into the same block causes Claude to interpret the assistant turn as
 Two further properties of that block are load-bearing, and neither one is about JSON validity. The first is the role. The result goes back in a user-role message. It is not an assistant message, and it is not a note the orchestrator writes on the model’s behalf. The second is the correlation. Every tool_result carries the identifier of the request it answers, its tool_use_id, and that is how a turn containing several parallel calls gets sorted out on the way back.<sup>[5]</sup>
 
 Correctness here is a question of role and content type rather than of schema strictness. A block can validate cleanly and still be wrong, because it arrived in the wrong role or without the id that ties it to a request. The remaining failure in this family is compression: substituting a summary of the result for the result. The full result is appended to the complete conversation history, and the model reasons over that history.<sup>[1]</sup> Summarising it at the boundary is the status-flag mistake again, made one layer lower down.
-
----
 
 ## Loop Control: Turns, Budget, and Effort
 
@@ -231,8 +219,6 @@ Extended thinking is a separate feature from effort. They are independent: effor
 
 Effort can be set at the session level in query() options, or per subagent via the effort field on AgentDefinition to override the session level. The use of subagents as a composition pattern is covered in Chapter 2 (Coordinator plus subagents).
 
----
-
 ## Permission Mode
 
 The permissionMode option (Python: permission_mode; TypeScript: permissionMode) controls whether the agent asks for approval before using tools that are not covered by explicit allow or deny rules.<sup>[4]</sup>
@@ -264,8 +250,6 @@ Uses a model classifier to approve or deny the prompts that would otherwise reac
 Runs all allowed tools without asking. The exceptions are narrow and worth knowing: tools matched by an explicit ask rule, connector tools an organization has set to ask, and tools that require user interaction still prompt.<sup>[6]</sup> Reserve this for containers, virtual machines, and other isolated environments where the agent's actions cannot reach anything you care about.<sup>[4]</sup> A pipeline that needs a fixed, explicit tool surface rather than an unguarded one is better served by *dontAsk*, which never prompts and denies whatever the permission rules have not already allowed. Chapter 8 works through the choice for CI.
 
 Note that *permissionMode*: "acceptEdits" does not auto-approve MCP tools. "bypassPermissions" comes closest and still stops short of universal: it runs what the permission rules allow without asking, and leaves the ask-rule and user-interaction exceptions standing.<sup>[6]</sup> Chapter 5 covers the specific implication for MCP tool permissions.
-
----
 
 ## What the Loop Looks Like End-to-End
 
@@ -339,8 +323,6 @@ async function runAgent(prompt: string): Promise<void> {
 
 Three things to observe in both versions. First: loop continuation is keyed on stop_reason (Messages API) or subtype (SDK). Second: tool results are returned as isolated tool_result blocks in new user-role messages. Third: the loop does not inspect the text of Claude’s responses to decide what to do next. The control flow is structural, not semantic.
 
----
-
 ## The Two Anti-Patterns, Named
 
 The exam names these explicitly and tests them repeatedly. They have distinct mechanics, but both originate from the same misunderstanding: the belief that the model communicates completion intent through the content of its text output.
@@ -372,8 +354,6 @@ Both anti-patterns appear as exam distractors. They look reasonable to candidate
 
 The family is larger than its two named members, and the shape is worth recognising in preference to memorising the instances. stop_reason is a structured field the API sets when generation ends.<sup>[2]</sup> Everything else a loop might consult is a proxy: a phrase in the output, a confidence score the model was asked to emit, a running token count, a turn counter. Proxies correlate with completion until they do not. A model can sound finished and still have work queued behind the sentence. A token count climbs for reasons that have nothing to do with progress. A turn counter measures how many times the loop ran, which is a different question from whether the task is done. The field reports the state. The proxies estimate it, and an estimate is not a termination condition.
 
----
-
 ## The Architecture Implication
 
 The loop is not Claude’s loop. The model generates responses; the orchestrator runs the loop.
@@ -385,8 +365,6 @@ That execution model means the **orchestrator owns the termination logic.** Clau
 This separation is why the two anti-patterns are architectural failures, not just coding mistakes. Parsing text for completion signals outsources loop control logic to the model’s prose style. That is the wrong layer. The stop_reason field exists precisely to give the orchestrator a reliable, structured, parseable signal.
 
 Everything else in this book builds on that separation: hooks that intercept tool calls in the orchestrator layer (Chapter 3), multi-agent systems where one orchestrator drives subagent loops (Chapter 2), context management that shapes what Claude sees on each turn (Chapter 11). The primitives are all correct loop mechanics at the foundation.
-
----
 
 ## Key Takeaways
 
