@@ -6,6 +6,14 @@ The editorial position is this: the CCAR-F exam tests whether you understand why
 
 [**Video overview of the project**](https://youtu.be/Uu4Y1mq7ZY0)
 
+## How this book was tested
+
+This book was not written and then validated. It was built, taken into the exam, and found wanting: I failed, because it was missing things that could not be seen as missing until an exam pointed at them.
+
+So the gaps went back in. Each sitting returned a list of objectives I had answered badly, and each of those became material here that had not existed before. I [eventually passed](https://www.credly.com/badges/0e384acc-5901-4709-9008-90698138b29b).
+
+That progression is what this repository is. The passages that read as most opinionated are usually the ones covering something the book originally got wrong, or skipped entirely. If you are studying from this, you are studying from a book that was corrected by the thing it is preparing you for.
+
 ## Why this exists
 
 I wanted a structured understanding of Claude Code's architecture and the design decisions underneath it, specifically as preparation for the CCAR-F certification exam. The official documentation is comprehensive but distributed across multiple sites and organized by feature rather than by the conceptual relationships between features. The fastest way to build a unified mental model was to assemble the primary sources into a research corpus and have Claude synthesize it under explicit editorial constraints. After reading what came out, I figured other practitioners preparing for the exam might find it useful, and put it here.
@@ -43,6 +51,8 @@ Each chapter introduces one or two named concepts as cognitive handles. These ar
 
 Both are attached to the [latest release](https://github.com/vkorost/claude-certified-architect-guide/releases/latest) and always point at the current revision. The book is corrected in place rather than re-versioned, so these links never go stale.
 
+If you downloaded the book or forked this repository before 22 August 2026, replace your copy. Every edition before that date is missing material the later revisions added, and some of what it did contain was corrected rather than merely extended. The links above always resolve to the current text.
+
 ## What's in this repo
 
 - `README.md`: this file.
@@ -57,6 +67,12 @@ The raw documentation vaults, the assembly pipeline instructions, and the workin
 ## Coverage cutoff
 
 Documentation sources were consulted through August 2026. Claude Code, CLAUDE.md semantics, MCP, and the broader Claude platform are under active development. The book documents behavior as of its writing date. Readers should verify time-sensitive claims against current documentation before relying on them for production decisions or exam preparation.
+
+## Maintenance
+
+I passed the exam on 22 August 2026 and have no further use for it myself, so I am unlikely to revise this book on my own initiative. Given the coverage cutoff above, it will drift.
+
+If you find an error, or a place where the product has moved on, open a pull request. I will read it and apply it.
 
 ## AI assistance, scope of
 
