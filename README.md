@@ -82,6 +82,8 @@ Claude was used for research synthesis, prose generation in a defined voice (Mic
 
 This is not a Claude Code tutorial. It is not a getting-started guide. It is not a prompt cookbook. It is not an API reference. The reader is assumed to have used Claude Code at least once and to understand what an LLM, a tool call, and an agent loop are. The book does not teach you to use Claude; it teaches you to reason about why Claude's architecture works the way it does, which is what the exam tests.
 
+If you are after the Professional credential instead, [claude-certified-architect-professional-guide](https://github.com/vkorost/claude-certified-architect-professional-guide) is the same treatment for CCAR-P: different exam, different blueprint, 21 chapters, built the same way.
+
 ## Disclaimer
 
 This repository is an independent, unofficial study guide. It is not produced, endorsed, sponsored, or reviewed by Anthropic. "Claude" and "Claude Certified Architect" are trademarks of Anthropic, PBC, used here for descriptive reference only.
