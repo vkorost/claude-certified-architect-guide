@@ -1,3 +1,5 @@
+![Claude Certified Architect Foundations — Patterns, Pitfalls, and Production Trade-offs for the CCAR-F Exam](./book/claude-certified-architect-guide-social-800x400.jpg)
+
 # Claude Certified Architect Foundations
 
 A practitioner reference for the Anthropic CCAR-F certification exam: patterns, pitfalls, and production trade-offs across all five exam domains. 12 chapters covering the agentic loop, tool design, configuration hierarchies, prompting discipline, context management, and reliability engineering for Claude Code and the Claude platform.
