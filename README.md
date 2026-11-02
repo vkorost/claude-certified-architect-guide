@@ -1,4 +1,4 @@
-![Claude Certified Architect Foundations — Patterns, Pitfalls, and Production Trade-offs for the CCAR-F Exam](./book/claude-certified-architect-guide-social-800x400.jpg)
+[![Claude Certified Architect Foundations — Patterns, Pitfalls, and Production Trade-offs for the CCAR-F Exam](./book/claude-certified-architect-guide-social-800x400.jpg)](https://github.com/vkorost/claude-certified-architect-guide/releases/latest)
 
 # Claude Certified Architect Foundations
 
